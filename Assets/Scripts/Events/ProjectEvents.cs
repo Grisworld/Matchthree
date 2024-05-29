@@ -1,18 +1,9 @@
-using System.Collections;
-using System.Collections.Generic;
-using UnityEngine;
+using UnityEngine.Events;
 
-public class ProjectEvents : MonoBehaviour
+namespace Events
 {
-    // Start is called before the first frame update
-    void Start()
+    public class ProjectEvents
     {
-        
-    }
-
-    // Update is called once per frame
-    void Update()
-    {
-        
+        public UnityAction ProjectStarted;
     }
 }

@@ -1,18 +1,12 @@
-using System.Collections;
-using System.Collections.Generic;
-using UnityEngine;
+using Zenject;
 
-public class LoginSceneInstaller : MonoBehaviour
+namespace Installers
 {
-    // Start is called before the first frame update
-    void Start()
+    public class LoginSceneInstaller : MonoInstaller<LoginSceneInstaller>
     {
-        
-    }
-
-    // Update is called once per frame
-    void Update()
-    {
-        
+        public override void InstallBindings()
+        {
+            
+        }
     }
 }

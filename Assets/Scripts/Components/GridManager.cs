@@ -1,21 +1,35 @@
+using System;
 using System.Collections.Generic;
+using System.Reflection;
 using Sirenix.OdinInspector;
 using Sirenix.Serialization;
 using Sirenix.Utilities;
+using UnityEditor;
 using UnityEngine;
+using Random = UnityEngine.Random;
 
 namespace Components
 {
     public class GridManager : SerializedMonoBehaviour
     {
-        [BoxGroup(Order = 999)] [TableMatrix(SquareCells = true, DrawElementMethod = nameof(DrawTile)), OdinSerialize]
+        [BoxGroup(Order = 999),TableMatrix(SquareCells = true, DrawElementMethod = nameof(DrawTile)), OdinSerialize]
         private Tile[,] _grid;
 
         [SerializeField] private List<GameObject> _tilePrefabs;
 
         private int _gridSizeX;
         private int _gridSizeY;
-
+        static MethodInfo _clearConsoleMethod;
+        static MethodInfo clearConsoleMethod {
+            get {
+                if (_clearConsoleMethod == null) {
+                    Assembly assembly = Assembly.GetAssembly (typeof(SceneView));
+                    Type logEntries = assembly.GetType ("UnityEditor.LogEntries");
+                    _clearConsoleMethod = logEntries.GetMethod ("Clear");
+                }
+                return _clearConsoleMethod;
+            }
+        }
         private Tile DrawTile(Rect rect, Tile tile)
         {
             if (tile != null)
@@ -73,8 +87,66 @@ namespace Components
                     DestroyImmediate(tileNew);
                 }
             }
+            clearConsoleMethod.Invoke (new object (), null);
+            Debug.Log("Any Move? "+ ControlMoves(_gridSizeX, _gridSizeY));
+            FindAllPossibleMoves(_gridSizeX, _gridSizeY);
             
-            Debug.Log("Any MOve? "+ ControlMoves(_gridSizeX, _gridSizeY));
+        }
+
+        private void FindAllPossibleMoves(int gridSizeX, int gridSizeY)
+        {
+            List<Tuple<int,int,String>> positions = new List<Tuple<int,int,String>>();
+            for (int x = 0; x < gridSizeX; x++)
+            for (int y = 0; y < gridSizeY; y++)
+            {
+                if (y < gridSizeY - 3 && _grid[x, y + 2].ID == _grid[x, y].ID && _grid[x, y + 3].ID == _grid[x, y].ID)
+                    positions.Add(new Tuple<int, int,String>(x,y,"YPos"));
+                if (y >= 3 && _grid[x, y - 2].ID == _grid[x, y].ID && _grid[x, y - 3].ID == _grid[x, y].ID)
+                    positions.Add(new Tuple<int, int,String>(x,y,"YPos"));
+                if (y < gridSizeY - 1 && x >= 2 && _grid[x - 1, y + 1].ID == _grid[x, y].ID && _grid[x - 2, y + 1].ID == _grid[x, y].ID)
+                    positions.Add(new Tuple<int, int,String>(x,y,"YPos"));
+                if (y < gridSizeY - 1 && x < gridSizeX - 2 && _grid[x + 1, y + 1].ID == _grid[x, y].ID && _grid[x + 2, y + 1].ID == _grid[x, y].ID)
+                    positions.Add(new Tuple<int, int,String>(x,y,"YPos"));
+                if (y >= 1 && x >= 2 && _grid[x - 1, y - 1].ID == _grid[x, y].ID && _grid[x - 2, y - 1].ID == _grid[x, y].ID)
+                    positions.Add(new Tuple<int, int,String>(x,y,"YPos"));
+                if (y >= 1 && x < gridSizeX - 2 && _grid[x + 1, y - 1].ID == _grid[x, y].ID && _grid[x + 2, y - 1].ID == _grid[x, y].ID)
+                    positions.Add(new Tuple<int, int,String>(x,y,"YPos"));
+                if (y < gridSizeY - 1 && x < gridSizeX - 1 && x >= 1 && _grid[x + 1, y + 1].ID == _grid[x, y].ID && _grid[x - 1, y + 1].ID == _grid[x, y].ID)
+                    positions.Add(new Tuple<int, int,String>(x,y,"YPos"));
+                if (y >= 1 && x < gridSizeX - 1 && x >= 1 && _grid[x + 1, y - 1].ID == _grid[x, y].ID && _grid[x - 1, y - 1].ID == _grid[x, y].ID)
+                    positions.Add(new Tuple<int, int,String>(x,y,"YPos"));
+                
+                if (x < gridSizeX - 3 && _grid[x + 2, y].ID == _grid[x, y].ID && _grid[x + 3, y].ID == _grid[x, y].ID)
+                    positions.Add(new Tuple<int, int,String>(x,y,"XPos"));
+                if (x >= 3 && _grid[x - 2, y].ID == _grid[x, y].ID && _grid[x - 3, y].ID == _grid[x, y].ID)
+                    positions.Add(new Tuple<int, int,String>(x,y,"XPos"));
+                if (x >= 1 && y < gridSizeY - 2 && _grid[x - 1, y + 1].ID == _grid[x, y].ID && _grid[x - 1, y + 2].ID == _grid[x, y].ID)
+                    positions.Add(new Tuple<int, int,String>(x,y,"XPos"));
+                if (x >= 1 && y >= 2 && _grid[x - 1, y - 1].ID == _grid[x, y].ID && _grid[x - 1, y - 2].ID == _grid[x, y].ID)
+                    positions.Add(new Tuple<int, int,String>(x,y,"XPos"));
+                if (x < gridSizeX - 1 && y < gridSizeY - 2 && _grid[x + 1, y + 1].ID == _grid[x, y].ID && _grid[x + 1, y + 2].ID == _grid[x, y].ID)
+                    positions.Add(new Tuple<int, int,String>(x,y,"XPos"));
+                if (x < gridSizeX - 1 && y >= 2 && _grid[x + 1, y - 1].ID == _grid[x, y].ID && _grid[x + 1, y - 2].ID == _grid[x, y].ID)
+                    positions.Add(new Tuple<int, int,String>(x,y,"XPos"));
+                if (x < gridSizeX - 1 && y < gridSizeY - 1 && y >= 1 && _grid[x + 1, y + 1].ID == _grid[x, y].ID && _grid[x + 1, y - 1].ID == _grid[x, y].ID)
+                    positions.Add(new Tuple<int, int,String>(x,y,"XPos"));
+                if (x >= 1 && y < gridSizeY - 1 && y >= 1 && _grid[x - 1, y + 1].ID == _grid[x, y].ID && _grid[x - 1, y - 1].ID == _grid[x, y].ID)
+                    positions.Add(new Tuple<int, int,String>(x,y,"XPos"));
+                
+            }
+
+            int count = 0;
+            int temp = -1;
+            int temp2 = -1;
+            foreach (var tuples in positions)
+            {
+                count = temp == tuples.Item1 && temp2 == tuples.Item2 ? count + 1 : 0;
+                Debug.Log("Positions= "+ tuples.Item1 + " "+tuples.Item2 + " " +tuples.Item3);
+                temp = tuples.Item1;
+                temp2 = tuples.Item2;
+                if(count == 6)
+                    Debug.LogError("Max "+ tuples.Item1+ " "+tuples.Item2 + " " +tuples.Item3);
+            }
         }
 
         private bool ControlMoves(int gridSizeX, int gridSizeY)

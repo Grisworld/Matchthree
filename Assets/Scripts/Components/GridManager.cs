@@ -1,24 +1,45 @@
 using System;
-using System.Collections.Generic;
-using System.Reflection;
+ using System.Collections.Generic;
+ using System.Reflection;
+ using Events;
+using Extensions.System;
+using Extensions.Unity;
 using Sirenix.OdinInspector;
 using Sirenix.Serialization;
 using Sirenix.Utilities;
 using UnityEditor;
 using UnityEngine;
+using Zenject;
 using Random = UnityEngine.Random;
 
 namespace Components
 {
     public class GridManager : SerializedMonoBehaviour
     {
-        [BoxGroup(Order = 999),TableMatrix(SquareCells = true, DrawElementMethod = nameof(DrawTile)), OdinSerialize]
+        [Inject] private InputEvents InputEvents{get;set;}
+        [SerializeField] private Camera Camera;
+        [BoxGroup(Order = 999)][TableMatrix(SquareCells = true)/*(DrawElementMethod = nameof(DrawTile))*/,OdinSerialize]
         private Tile[,] _grid;
-
         [SerializeField] private List<GameObject> _tilePrefabs;
-
         private int _gridSizeX;
         private int _gridSizeY;
+        [SerializeField] private List<int> _prefabIds;
+        
+        private Tile _selectedTile;
+        private Vector3 _mouseDownPos;
+        private Vector3 _mouseUpPos;
+        
+        private void OnEnable()
+        {
+            RegisterEvents();
+        }
+
+        private void OnDisable()
+        {
+            UnRegisterEvents();
+        }
+
+        
         static MethodInfo _clearConsoleMethod;
         static MethodInfo clearConsoleMethod {
             get {
@@ -48,7 +69,8 @@ namespace Components
         {
             _gridSizeX = sizeX;
             _gridSizeY = sizeY;
-
+            Camera.transform.SetPositionAndRotation(new Vector3(_gridSizeX / 2, _gridSizeY / 2, _gridSizeY * (-1f)), Quaternion.identity);
+            for(int id = 0; id < _tilePrefabs.Count; id ++) _prefabIds.Add(id);
             if (_grid != null)
             {
                 foreach (Tile o in _grid)
@@ -67,6 +89,8 @@ namespace Components
                 Vector3 pos = new(coord.x, coord.y, 0f);
                 while (true)
                 {
+                    List<int> spawnableIds = new(_prefabIds);
+                    int randomId = spawnableIds.Random();
                     int randomIndex = Random.Range(0, _tilePrefabs.Count);
                     GameObject tilePrefabRandom = _tilePrefabs[randomIndex];
                     GameObject tileNew = Instantiate(tilePrefabRandom, pos, Quaternion.identity);
@@ -200,6 +224,37 @@ namespace Components
         {
             tile.Construct(coord);
             _grid[x, y] = tile;
+        }
+        private void RegisterEvents()
+        {
+            InputEvents.MouseDownGrid += OnMouseDownGrid;
+            InputEvents.MouseUpGrid += OnMouseUpGrid;
+        }
+
+        private void OnMouseDownGrid(Tile arg0, Vector3 arg1)
+        {
+            _selectedTile = arg0;
+            _mouseDownPos = arg1;
+            EDebug.Method();
+
+        }
+
+        private void OnMouseUpGrid(Vector3 arg0)
+        {
+            _mouseUpPos = arg0;
+
+            if(_selectedTile)
+            {
+                EDebug.Method();
+    
+                Debug.DrawLine(_mouseDownPos, _mouseUpPos, Color.blue, 2f);
+            }
+        }
+
+        private void UnRegisterEvents()
+        {
+            InputEvents.MouseDownGrid -= OnMouseDownGrid;
+            InputEvents.MouseUpGrid -= OnMouseUpGrid;
         }
     }
 }

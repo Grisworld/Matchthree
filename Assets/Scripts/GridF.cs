@@ -2,6 +2,7 @@ using System;
 using System.Collections.Generic;
 using Components;
 using Extensions.System;
+using Extensions.Unity;
 using UnityEngine;
 
 public static class GridF
@@ -88,6 +89,36 @@ public static class GridF
             if(lastIDCounter == MatchOffset) results.Remove(lastPrefabID);
         }
     }
+
+    public static bool TryGetMostBelowEmpty(this Tile[,] thisGrid, Tile thisTile, out Vector2Int belowTileCoords)
+    {
+        Vector2Int belowCoords = thisTile.Coords;
+        belowTileCoords = belowCoords;
+        
+        belowCoords.y --;
+
+        if(thisGrid.IsInsideGrid(belowCoords) == false) return false;
+
+        if(thisGrid.Get(belowCoords)) return false;
+        
+        for(int y = belowCoords.y; y < 0; y --)
+        {
+            Vector2Int thisCoords = new(thisTile.Coords.x, y);
+            
+            Tile belowTile = thisGrid.Get(thisCoords);
+
+            if(belowTile == false)
+            {
+                belowTileCoords = thisCoords;
+            }
+            else
+            {
+                break;
+            }
+        }
+        
+        return true;
+    }
     
     public static List<Tile> GetMatchesX
     (this Tile[,] thisGrid, Tile tile)
@@ -98,31 +129,30 @@ public static class GridF
         Tile thisTile = grid.Get(coord);
 
         List<Tile> matches = new();
-        int lastID = -1;
+
         for(int x = 0; x < grid.GetLength(0); x ++)
         {
             Tile currTile = grid[x, coord.y];
 
-            int difference = Math.Abs(currTile.Coords.x - thisTile.Coords.x);
-            if(currTile.ID == prefabId && difference <= MatchOffset)
+            if(currTile.ID == prefabId)
             {
-                Debug.Log("EnteredX?  "+currTile.Coords);
-                if(lastID == -1 || currTile.ID == lastID)
-                    matches.Add(currTile);
-                lastID = currTile.ID;
-
+                matches.Add(currTile);
             }
-            else if (matches.Count < MatchOffset + 1)
+            else if(matches.Contains(thisTile) == false)
             {
                 matches.Clear();
             }
-            else
+            else if(matches.Contains(thisTile))
             {
-                lastID = currTile.ID;
+                break;
             }
-
         }
-        ControlCountThree(matches);
+
+        if(matches.Count < 3)
+        {
+            matches.Clear();
+        }
+        
         return matches;
     }
 
@@ -134,38 +164,31 @@ public static class GridF
         Tile thisTile = grid.Get(coord);
 
         List<Tile> matches = new();
-        int lastID = -1;
+
         for(int y = 0; y < grid.GetLength(1); y ++)
         {
             Tile currTile = grid[coord.x, y];
 
-            int difference = Math.Abs(currTile.Coords.y - thisTile.Coords.y);
-            if(currTile.ID == prefabId && difference <= MatchOffset)
+            if(currTile.ID == prefabId)
             {
-                Debug.Log("EnteredY?  "+currTile.Coords);
-                if(lastID == -1 || currTile.ID == lastID)
-                    matches.Add(currTile);
-                lastID = currTile.ID;
-
+                matches.Add(currTile);
             }
-            else if (matches.Count < MatchOffset + 1)
+            else if(matches.Contains(thisTile) == false)
             {
                 matches.Clear();
             }
-            else
+            else if(matches.Contains(thisTile))
             {
-
-                lastID = currTile.ID;
+                break;
             }
         }
-        ControlCountThree(matches);
-        return matches;
-    }
 
-    private static void ControlCountThree(List<Tile> matches)
-    {
-        if (matches.Count < MatchOffset + 1)
+        if(matches.Count < 3)
+        {
             matches.Clear();
+        }
+        
+        return matches;
     }
 
     private static int ClampInsideGrid
@@ -174,12 +197,12 @@ public static class GridF
         return Mathf.Clamp(value, 0, gridSize - 1);
     }
 
-    public static bool IsInsideGrid(this Tile[,] grid, int axis, int axisIndex)
+    public static bool IsInsideGrid(this Tile[,] grid, int axisCoord, int axisIndex)
     {
-        int min = 0;
+        const int min = 0;
         int max = grid.GetLength(axisIndex);
-        
-        return axis >= min && axis < max;
+
+        return axisCoord >= min && axisCoord < max;
     }
     
     public static bool IsInsideGrid(this Tile[,] grid, Vector2Int coord)
@@ -235,7 +258,7 @@ public static class GridF
     /// Convert non-zero axis index with sign.
     /// </summary>
     /// <param name="axisSignIndex">Should not start from zero.</param>
-    /// <returns>GridDir</returns>
+    /// <returns>Grid Dir</returns>
     public static GridDir GetGridDir(int axisSignIndex)
     {
         return axisSignIndex switch
@@ -271,6 +294,8 @@ public static class GridF
         Tile tileAtCoord = thisGrid.Get(coord);
 
         thisGrid[coord.x, coord.y] = tileToSet;
+
+        if(tileToSet == false) return tileAtCoord;
         
         ICoordSet coordSet = tileToSet;
 
@@ -279,7 +304,7 @@ public static class GridF
         return tileAtCoord;
     }
 
-    public static void Switch(this Tile[,] thisGrid, Tile fromTile, Vector2Int toCoords)
+    public static void Swap(this Tile[,] thisGrid, Tile fromTile, Vector2Int toCoords)
     {
         Vector2Int fromCoords = fromTile.Coords;
         
@@ -287,13 +312,20 @@ public static class GridF
         thisGrid.Set(toTile, fromCoords);
     }
     
-    public static void Switch(this Tile[,] thisGrid, Tile fromTile, Tile toTile)
+    public static void Swap(this Tile[,] thisGrid, Tile fromTile, Tile toTile)
     {
         Vector2Int fromCoords = fromTile.Coords;
         Vector2Int toCoords = toTile.Coords;
         
         thisGrid.Set(fromTile, toCoords);
         thisGrid.Set(toTile, fromCoords);
+    }
+    
+    public static Vector3 CoordsToWorld(this Tile[,] thisGrid, Transform transform, Vector2Int coords)
+    {
+        Vector3 localPos = coords.ToVector3XY();
+
+        return transform.position + localPos;
     }
 }
 

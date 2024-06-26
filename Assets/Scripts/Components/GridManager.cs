@@ -252,6 +252,42 @@ namespace Components
             }
 
             StartCoroutine(RainDownRoutine());
+            //CheckForTripleAfterDestroy();
+        }
+
+        private void CheckForTripleAfterDestroy()
+        {
+            for (int y = 0; y < _gridSizeY; y++)
+            {
+                bool found = false;
+                for (int x = 0; x < _gridSizeX; x++)
+                {
+                    Vector2Int thisCoord = new(x, y);
+                    Tile thisTile = _grid.Get(thisCoord);
+                    var matches = _grid.GetMatchesYAll(thisTile);
+                    matches.AddRange(_grid.GetMatchesXAll(thisTile));
+
+                    if (matches.Count > 2)
+                    {
+                        found = true;
+                        matches.DoToAll
+                        (
+                            e =>
+                            {
+                                _grid.Set(null, e.Coords);
+                                e.gameObject.Destroy();
+                            }
+                        );
+                        StopCoroutine(RainDownRoutine());
+                        RainDownTiles();
+                        break;
+                    }
+                }
+
+                if (found)
+                    break;
+
+            }
         }
 
         private IEnumerator RainDownRoutine()
@@ -273,10 +309,43 @@ namespace Components
 
                 if(shouldWait)
                 {
-                    yield return new WaitForSecondsRealtime(0.1f);
+                    GridEvents.InputStop?.Invoke();
+
+                    yield return new WaitForSecondsRealtime(0.45f);
+
                 }
             }
-            
+            for (int y = 0; y < _gridSizeY; y++)
+            {
+                bool found = false;
+                for (int x = 0; x < _gridSizeX; x++)
+                {
+                    Vector2Int thisCoord = new(x, y);
+                    Tile thisTile = _grid.Get(thisCoord);
+                    var matches = _grid.GetMatchesYAll(thisTile);
+                    matches.AddRange(_grid.GetMatchesXAll(thisTile));
+
+                    if (matches.Count > 2)
+                    {
+                        found = true;
+                        matches.DoToAll
+                        (
+                            e =>
+                            {
+                                _grid.Set(null, e.Coords);
+                                e.gameObject.Destroy();
+                            }
+                        );
+                        RainDownTiles();
+
+                        break;
+                    }
+                }
+
+                if (found)
+                    break;
+
+            }
             GridEvents.InputStart?.Invoke();
         }
 
@@ -284,9 +353,9 @@ namespace Components
         {
             TweenContainer.AddSequence = DOTween.Sequence();
             Vector3 fromTileWorldPos = _grid.CoordsToWorld(_transform, fromTile.Coords);
-            TweenContainer.AddedSeq.Append(fromTile.transform.DOMove(fromTileWorldPos, 1f));
+            TweenContainer.AddedSeq.Append(fromTile.transform.DOMove(fromTileWorldPos, 0.5f));
             Vector3 toTileWorldPos = _grid.CoordsToWorld(_transform, toTile.Coords);
-            TweenContainer.AddedSeq.Join(toTile.transform.DOMove(toTileWorldPos, 1f));
+            TweenContainer.AddedSeq.Join(toTile.transform.DOMove(toTileWorldPos, 0.5f));
 
             TweenContainer.AddedSeq.onComplete += onComplete;
         }
@@ -363,7 +432,6 @@ namespace Components
                         RainDownTiles();
                     }
                 );
-
                 _currMatchesDebug = matches;
             }
         }

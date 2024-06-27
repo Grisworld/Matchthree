@@ -18,8 +18,13 @@ namespace Components
 
         private void OnGridLoaded(Bounds gridBounds)
         {
+            //width, height lower?
+            //width  x height (if height is lower, no need to multiply)
+            int screenWidth = Screen.width;
+            int screenHeight = Screen.height;
+            Debug.Log("");
             _transform.position = gridBounds.center + (Vector3.back * 10f);
-            _camera.orthographicSize = gridBounds.extents.x * (1f / _camera.aspect);
+            _camera.orthographicSize = gridBounds.extents.x * (screenHeight < screenWidth ? 1 : (1f/ _camera.aspect));
         }
 
         protected override void UnRegisterEvents()

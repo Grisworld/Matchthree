@@ -292,6 +292,9 @@ namespace Components
 
         private IEnumerator RainDownRoutine()
         {
+            Debug.Log("Start?");
+            Tween lastTween = null;
+            float rainDownLengthMax = 0f;
             for(int y = 0; y < _gridSizeY; y ++) // TODO: Should start from first tile that we are moving
             {
                 bool shouldWait = false;
@@ -301,52 +304,68 @@ namespace Components
                     Tile thisTile = _tilesToMove[x, y];
 
                     if(thisTile == false) continue;
+                    Tween moveTween = thisTile.DoMove(_grid.CoordsToWorld(_transform, thisTile.Coords));
+                    //moveTween.SetSpeedBased(true);
+                    float dropLengthMax = Vector3.Distance(thisTile.transform.position , new Vector3(thisTile.Coords.x
+                    ,thisTile.Coords.y,thisTile.transform.position.z));
+                    if (rainDownLengthMax <= dropLengthMax)
+                    {
+                        Debug.Log($"{rainDownLengthMax} rainDownLengthMax");
 
-                    thisTile.DoMove(_grid.CoordsToWorld(_transform, thisTile.Coords));
-
+                        rainDownLengthMax = dropLengthMax;
+                        lastTween = moveTween;
+                    }
                     shouldWait = true;
                 }
 
                 if(shouldWait)
                 {
                     GridEvents.InputStop?.Invoke();
-
-                    yield return new WaitForSecondsRealtime(0.45f);
+                    //yield return new WaitForSeconds(0.45f);
 
                 }
             }
+
+            bool anyfound = false;
+            List<Tile> matches = null;
             for (int y = 0; y < _gridSizeY; y++)
             {
                 bool found = false;
+                matches = null;
                 for (int x = 0; x < _gridSizeX; x++)
                 {
                     Vector2Int thisCoord = new(x, y);
                     Tile thisTile = _grid.Get(thisCoord);
-                    var matches = _grid.GetMatchesYAll(thisTile);
+                    matches = _grid.GetMatchesYAll(thisTile);
                     matches.AddRange(_grid.GetMatchesXAll(thisTile));
 
                     if (matches.Count > 2)
                     {
                         found = true;
-                        matches.DoToAll
-                        (
-                            e =>
-                            {
-                                _grid.Set(null, e.Coords);
-                                e.gameObject.Destroy();
-                            }
-                        );
-                        RainDownTiles();
+                        anyfound = true;
 
                         break;
                     }
                 }
-
                 if (found)
                     break;
-
             }
-            GridEvents.InputStart?.Invoke();
+            if(lastTween != null) lastTween.onComplete += delegate
+            {
+                
+                matches.DoToAll
+                (
+                    e =>
+                    {
+                        _grid.Set(null, e.Coords);
+                        e.gameObject.Destroy();
+                    }
+                );
+                RainDownTiles();
+                if(!anyfound) GridEvents.InputStart?.Invoke();
+            };
+            yield break;
+
         }
 
         private void DoTileMoveAnim(Tile fromTile, Tile toTile, TweenCallback onComplete)

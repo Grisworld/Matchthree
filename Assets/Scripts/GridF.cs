@@ -131,15 +131,15 @@ public static class GridF
         List<Tile> matches = new();
 
         int botMax = coord.y - MatchOffset;
-        int topMax = coord.y + MatchOffset;
+        int topMax = coord.y + MatchOffset + 1;
 
         int gridLength = grid.GetLength(1);
         int gridMin = 0;
 
         if(botMax < gridMin) botMax = gridMin;
-        if(topMax >= gridLength) topMax = gridLength - 1;
+        if(topMax > gridLength) topMax = gridLength;
         
-        for(int y = botMax; y <= topMax; y ++)
+        for(int y = botMax; y < topMax; y ++)
         {
             Tile currTile = grid[coord.x, y];
             
@@ -176,15 +176,15 @@ public static class GridF
         List<Tile> matches = new();
 
         int leftMax = coord.x - MatchOffset;
-        int rightMax = coord.x + MatchOffset;
+        int rightMax = coord.x + MatchOffset + 1;
 
         int gridLength = grid.GetLength(0);
         int gridMin = 0;
 
         if(leftMax < gridMin) leftMax = gridMin;
-        if(rightMax >= gridLength) rightMax = gridLength - 1;
+        if(rightMax > gridLength) rightMax = gridLength;
         
-        for(int x = leftMax; x <= rightMax; x ++)
+        for(int x = leftMax; x < rightMax; x ++)
         {
             Tile currTile = grid[x, coord.y];
 
@@ -387,9 +387,9 @@ public static class GridF
 
         if(tileToSet == false) return tileAtCoord;
         
-        ICoordSet coordSet = tileToSet;
+        ITileGrid tileGrid = tileToSet;
 
-        coordSet.SetCoord(coord);
+        tileGrid.SetCoord(coord);
         
         return tileAtCoord;
     }

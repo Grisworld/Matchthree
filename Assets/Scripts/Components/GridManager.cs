@@ -39,7 +39,7 @@ namespace Components
         private List<Tile> _lastMatches;
         private Tile _hintTile;
         private GridDir _hintDir;
-
+        private const float _mouseThreshold = 1.0f;
         private void Awake()
         {
             _tilePoolsByPrefabID = new List<MonoPool>();
@@ -110,10 +110,12 @@ namespace Components
             foreach(Tile tile in _grid)
             {
                 matches.AddRange(_grid.GetMatchesXAll(tile));
+                if (matches.Count > 2) return true;
                 matches.AddRange(_grid.GetMatchesYAll(tile));
+                if (matches.Count > 2) return true;
             }
 
-            return matches.Count > 0;
+            return matches.Count > 2;
         }
 
         private bool IsGameOver(out Tile hintTile, out GridDir hintDir)
@@ -387,7 +389,8 @@ namespace Components
             _mouseUpPos = mouseUpPos;
 
             Vector3 dirVector = mouseUpPos - _mouseDownPos;
-
+            if (dirVector.magnitude < _mouseThreshold) return;
+            
             if(_selectedTile)
             {
                 Vector2Int tileMoveCoord = _selectedTile.Coords + GridF.GetGridDirVector(dirVector);

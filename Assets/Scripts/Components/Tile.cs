@@ -1,4 +1,4 @@
-using System;
+﻿using System;
 using DG.Tweening;
 using Extensions.DoTween;
 using Extensions.Unity;
@@ -16,6 +16,7 @@ namespace Components
         [SerializeField] private Transform _transform;
         public MonoPool MyPool{get;set;}
         public ITweenContainer TweenContainer{get;set;}
+        public bool ToBeDestroyed{get;set;}
 
         private void Awake()
         {
@@ -49,6 +50,7 @@ namespace Components
 
         public void AfterSpawn()
         {
+            ToBeDestroyed = false;
             //RESET METHOD (Resurrect)
         }
 
@@ -68,9 +70,18 @@ namespace Components
             return TweenContainer.AddedTween;
         }
 
-        public void DoHint(GridDir gridDir)
+        public Sequence DoHint(Vector3 worldPos, TweenCallback onComplete = null)
         {
-            //TODO: Later ...
+            Vector3 lastPos = _transform.position;
+            
+            TweenContainer.AddSequence = DOTween.Sequence();
+            
+            TweenContainer.AddedSeq.Append(_transform.DOMove(worldPos, 1f));
+            TweenContainer.AddedSeq.Append(_transform.DOMove(lastPos, 1f));
+
+            TweenContainer.AddedSeq.onComplete += onComplete;
+
+            return TweenContainer.AddedSeq;
         }
     }
 

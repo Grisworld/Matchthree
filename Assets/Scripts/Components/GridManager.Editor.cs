@@ -1,4 +1,6 @@
-﻿using System.Collections.Generic;
+﻿
+using System.Collections.Generic;
+using System.Linq;
 using Extensions.System;
 using Sirenix.OdinInspector;
 using Sirenix.Utilities;
@@ -24,6 +26,17 @@ namespace Components
             return tile;
         }
 
+        [Button]
+        private void TestGridDir(Vector2 input) {Debug.LogWarning(GridF.GetGridDir(input));}
+
+        [Button]
+        private void TestGameOver()
+        {
+            bool isGameOver = IsGameOver(out Tile hintTile, out GridDir hintDir);
+
+            Debug.LogWarning($"isGameOver: {isGameOver}, hintTile {hintTile}, hintDir {hintDir}", hintTile);
+        }
+        
         private void OnDrawGizmos()
         {
             if(_lastMatches == null) return;
@@ -32,10 +45,10 @@ namespace Components
             
             Gizmos.color = Color.blue;
             
-            foreach(Tile tile in _lastMatches)
+            foreach(Tile tile in _lastMatches.SelectMany(e => e))
             {
                 if(! tile) continue;
-
+            
                 Gizmos.DrawWireCube(tile.transform.position, Vector3.one);
             }
         }
@@ -49,6 +62,12 @@ namespace Components
             {
                  Bounds spriteBounds = tile.GetComponent<SpriteRenderer>().bounds;
                  _gridBounds.Encapsulate(spriteBounds);
+            }
+
+            foreach(GameObject border in _gridBorders)
+            {
+                Bounds spriteBounds = border.GetComponentInChildren<SpriteRenderer>().bounds;
+                _gridBounds.Encapsulate(spriteBounds);
             }
         }
 
@@ -93,7 +112,78 @@ namespace Components
                 _grid[coord.x, coord.y] = tile;// Becarefull while assigning tile to inversed y coordinates!
             }
             
+            GenerateTileBG();
+            GenerateBorders();
             CalculateBounds();
+        }
+
+        
+        [Button]
+        private void GenerateTileBG()
+        {
+            _tileBGs.DoToAll(DestroyImmediate);
+            _tileBGs = new List<GameObject>();
+            
+            foreach(Tile tile in _grid)
+            {
+                Vector3 tileWorldPos = tile.transform.position;
+
+                GameObject tileBg = Instantiate
+                (
+                    _tileBGPrefab,
+                    tileWorldPos,
+                    Quaternion.identity,
+                    _bGTrans
+                );
+                
+                _tileBGs.Add(tileBg);
+            }
+        }
+
+        [Button]
+        private void GenerateBorders()
+        {
+            _gridBorders.DoToAll(DestroyImmediate);
+            _gridBorders = new List<GameObject>();
+
+            Tile botLeftCorner = _grid[0,0];
+            InstantiateBorder(botLeftCorner.transform.position, _borderBotLeft);
+            Tile topRightCorner = _grid[_grid.GetLength(0) - 1, _grid.GetLength(1) - 1];
+            InstantiateBorder(topRightCorner.transform.position, _borderTopRight);
+            Tile botRightCorner = _grid[_grid.GetLength(0) - 1,0];
+            InstantiateBorder(botRightCorner.transform.position, _borderBotRight);
+            Tile topLeftCorner = _grid[0,_grid.GetLength(1) - 1];
+            InstantiateBorder(topLeftCorner.transform.position, _borderTopLeft);
+            
+            for(int x = 0; x < _grid.GetLength(0); x ++)
+            {
+                Tile tileBot = _grid[x, 0];
+                Tile tileTop = _grid[x, _grid.GetLength(1) - 1];
+                
+                InstantiateBorder(tileBot.transform.position, _borderBot);
+                InstantiateBorder(tileTop.transform.position, _borderTop);
+            }
+            for(int y = 0; y < _grid.GetLength(1); y ++)
+            {
+                Tile tileLeft = _grid[0, y];
+                Tile tileRight = _grid[_grid.GetLength(0) - 1, y];
+                
+                InstantiateBorder(tileLeft.transform.position, _borderLeft);
+                InstantiateBorder(tileRight.transform.position, _borderRight);
+            }
+        }
+
+        private void InstantiateBorder(Vector3 tileWPos, GameObject borderPrefab)
+        {
+            GameObject newBorder = Instantiate
+            (
+                borderPrefab,
+                tileWPos,
+                Quaternion.identity,
+                _borderTrans
+            );
+
+            _gridBorders.Add(newBorder);
         }
 #endif
     }

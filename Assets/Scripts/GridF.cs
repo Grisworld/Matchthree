@@ -417,6 +417,11 @@ public static class GridF
 
         return transform.position + localPos;
     }
+
+    public static bool ControlImmovableIds(Tile tile)
+    {
+        return tile.ID == 4 || tile.ID == 5;
+    }
 }
 
 public enum GridDir

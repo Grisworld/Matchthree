@@ -76,6 +76,7 @@ namespace Components
         {
             _prefabIds = new List<int>();
 
+            int countForArrowIds = 0;
             for(int id = 0; id < _tilePrefabs.Count; id ++) _prefabIds.Add(id);
             
             _gridSizeX = sizeX;
@@ -95,12 +96,24 @@ namespace Components
             for(int y = 0; y < _gridSizeY; y ++)
             {
                 List<int> spawnableIds = new(_prefabIds);
+                
+                
                 Vector2Int coord = new(x, _gridSizeY - y - 1); //Invert Y Axis
                 Vector3 pos = new(coord.x, coord.y, 0f);
 
                 _grid.GetSpawnableColors(coord, spawnableIds);
-                
+                if (countForArrowIds == 3 || (x != 0 && x != _gridSizeX - 1) )
+                { 
+                    spawnableIds.Remove(4);
+                    spawnableIds.Remove(5);
+                    
+                }
                 int randomId = spawnableIds.Random();
+                if (randomId == 4 || randomId == 5)
+                {
+                    randomId = x == 0 ? 4 : 5;
+                    countForArrowIds++;
+                }
                 
                 GameObject tilePrefabRandom = _tilePrefabs[randomId];
                 GameObject tileNew = PrefabUtility.InstantiatePrefab(tilePrefabRandom, transform) as GameObject; //Instantiate rand prefab

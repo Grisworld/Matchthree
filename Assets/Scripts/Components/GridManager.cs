@@ -1,4 +1,3 @@
-﻿
 ﻿using System.Collections;
 using System.Collections.Generic;
 using System.Linq;
@@ -58,6 +57,7 @@ namespace Components
         private Sequence _hintTween;
         private Coroutine _destroyRoutine;
         private const float  _mousethreshold = 1.0f;
+        
         public ITweenContainer TweenContainer{get;set;}
 
         private void Awake()
@@ -148,7 +148,7 @@ namespace Components
                     matches.Add(matchesAll);
                 }
             }
-Debug.Log("Count "+matches.Count);
+            Debug.Log("Count "+matches.Count);
             matches = matches.OrderByDescending(e => e.Count).ToList();
 
             for(int i = 0; i < matches.Count; i ++)
@@ -264,11 +264,11 @@ Debug.Log("Count "+matches.Count);
         private void SpawnAndAllocateTiles()
         {
             _tilesToMove = new Tile[_gridSizeX,_gridSizeY];
-
+            int markedColX = -1;
+            int markedColXLast = -1;
             for(int y = 0; y < _gridSizeY; y ++)
             {
                 int spawnStartY = 0;
-                
                 for(int x = 0; x < _gridSizeX; x ++)
                 {
                     Vector2Int thisCoord = new(x, y);
@@ -286,8 +286,16 @@ Debug.Log("Count "+matches.Count);
                             {
                                 spawnStartY = thisCoord.y;
                             }
-                        
-                            MonoPool randomPool = _tilePoolsByPrefabID.Random();
+
+                            MonoPool randomPool;
+                            while (true)
+                            {
+                                randomPool = _tilePoolsByPrefabID.Random();
+                                Tile randomTile = randomPool.Request<Tile>();
+                                if(GridF.ControlImmovableIds(randomTile)) continue;
+                                break;
+                            }
+
                             Tile newTile = SpawnTile
                             (
                                 randomPool, 
@@ -305,9 +313,14 @@ Debug.Log("Count "+matches.Count);
 
                         if(mostTopTile)
                         {
+                            if (y1 < _gridSizeY - 1 && GridF.ControlImmovableIds(_grid.Get(new(x,y1 + 1))))
+                            {
+                                markedColX = x == 0 ? 1 : -1; //TO DO...
+                            }
+                            
                             _grid.Set(null, mostTopTile.Coords);
                             _grid.Set(mostTopTile, thisCoord);
-                        
+                            
                             _tilesToMove[thisCoord.x, thisCoord.y] = mostTopTile;
 
                             break;
@@ -472,12 +485,14 @@ Debug.Log("Count "+matches.Count);
             if(dirVector.magnitude < _mousethreshold) return;
             if(_selectedTile)
             {
+                if(GridF.ControlImmovableIds(_selectedTile)) return;
                 Vector2Int tileMoveCoord = _selectedTile.Coords + GridF.GetGridDirVector(dirVector);
-
+                
                 if(! CanMove(tileMoveCoord)) return;
 
                 Tile toTile = _grid.Get(tileMoveCoord);
-
+                if(GridF.ControlImmovableIds(toTile)) return;
+                
                 _grid.Swap(_selectedTile, toTile);
 
                 if(! HasAnyMatches(out _lastMatches))

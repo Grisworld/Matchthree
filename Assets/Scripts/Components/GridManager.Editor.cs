@@ -85,7 +85,7 @@ namespace Components
             if(_grid != null)
             {
                 foreach(Tile o in _grid)
-                {
+                { 
                     DestroyImmediate(o.gameObject);
                 }
             }
@@ -111,7 +111,7 @@ namespace Components
                 int randomId = spawnableIds.Random();
                 if (randomId == 4 || randomId == 5)
                 {
-                    randomId = x == 0 ? 4 : 5;
+                    randomId = x == 0 ? 5 : 4;
                     countForArrowIds++;
                 }
                 

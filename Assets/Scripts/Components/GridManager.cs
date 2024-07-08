@@ -1,4 +1,5 @@
-﻿using System.Collections;
+﻿using System;
+using System.Collections;
 using System.Collections.Generic;
 using System.Linq;
 using DG.Tweening;
@@ -10,6 +11,7 @@ using Sirenix.OdinInspector;
 using Sirenix.Serialization;
 using UnityEngine;
 using Zenject;
+using Random = UnityEngine.Random;
 
 namespace Components
 {
@@ -71,7 +73,7 @@ namespace Components
                     new MonoPoolData
                     (
                         _tilePrefabs[prefabId],
-                        10,
+                        prefabId == 4 || prefabId == 5 ? 1 :10,
                         _transform
                     )
                 );
@@ -88,7 +90,6 @@ namespace Components
             for(int y = 0; y < _grid.GetLength(1); y ++)
             {
                 Tile tile = _grid[x, y];
-
                 SpawnTile(tile.ID, _grid.CoordsToWorld(_transform, tile.Coords), tile.Coords);
                 tile.gameObject.Destroy();
             }
@@ -265,21 +266,25 @@ namespace Components
         {
             _tilesToMove = new Tile[_gridSizeX,_gridSizeY];
             int markedColX = -1;
-            int markedColXLast = -1;
             for(int y = 0; y < _gridSizeY; y ++)
             {
                 int spawnStartY = 0;
                 for(int x = 0; x < _gridSizeX; x ++)
                 {
+                    if(markedColX != -1) continue;
                     Vector2Int thisCoord = new(x, y);
                     Tile thisTile = _grid.Get(thisCoord);
 
                     if(thisTile) continue;
-
+                    
                     int spawnPoint = _gridSizeY;
 
                     for(int y1 = y; y1 <= spawnPoint; y1 ++)
                     {
+                        Vector2Int emptyCoords = new(x, y1);
+
+                        Tile mostTopTile = _grid.Get(emptyCoords);
+                        
                         if(y1 == spawnPoint)
                         {
                             if(spawnStartY == 0)
@@ -290,12 +295,13 @@ namespace Components
                             MonoPool randomPool;
                             while (true)
                             {
-                                randomPool = _tilePoolsByPrefabID.Random();
-                                Tile randomTile = randomPool.Request<Tile>();
-                                if(GridF.ControlImmovableIds(randomTile)) continue;
+                                int index = Random.Range(0, _tilePoolsByPrefabID.ToList().Count);
+                                if(index == 4 || index == 5) continue;
+                                randomPool = _tilePoolsByPrefabID[index];
                                 break;
+                                
+                                
                             }
-
                             Tile newTile = SpawnTile
                             (
                                 randomPool, 
@@ -306,16 +312,30 @@ namespace Components
                             _tilesToMove[thisCoord.x, thisCoord.y] = newTile;
                             break;
                         }
-
-                        Vector2Int emptyCoords = new(x, y1);
-
-                        Tile mostTopTile = _grid.Get(emptyCoords);
-
+                        
                         if(mostTopTile)
                         {
-                            if (y1 < _gridSizeY - 1 && GridF.ControlImmovableIds(_grid.Get(new(x,y1 + 1))))
+                            try
                             {
-                                markedColX = x == 0 ? 1 : -1; //TO DO...
+                                if (y1 < _gridSizeY - 1 && GridF.ControlImmovableIds(_grid.Get(new(x, y1 + 1))))
+                                {
+                                    
+                                    markedColX = x == 0 ? 0 : 1; //TO DO...
+                                    if (markedColX == 0)
+                                    {
+                                        Debug.Log("Entered??!'  " + (x+1)+ "  y "+ y1);
+                                        mostTopTile = _grid.Get(new Vector2Int(x + 1, y1));
+                                    }
+                                    else
+                                    {
+                                        Debug.Log("Entered?421?!'  " + (x-1)+ "  y  " + y1);
+                                        mostTopTile = _grid.Get(new Vector2Int(x - 1, y1));
+                                    }
+                                }
+                            }
+                            catch(Exception e)
+                            {
+                                Debug.Log("y1  "+y1);
                             }
                             
                             _grid.Set(null, mostTopTile.Coords);

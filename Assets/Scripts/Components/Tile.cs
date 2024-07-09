@@ -18,6 +18,10 @@ namespace Components
         public ITweenContainer TweenContainer{get;set;}
         public bool ToBeDestroyed{get;set;}
 
+        public SpriteRenderer GetSprite()
+        {
+            return _spriteRenderer;
+        }
         private void Awake()
         {
             TweenContainer = TweenContain.Install(this);
@@ -72,6 +76,7 @@ namespace Components
 
         public Sequence DoHint(Vector3 worldPos, TweenCallback onComplete = null)
         {
+            _spriteRenderer.sortingOrder = EnvVar.HintSpriteLayer;
             Vector3 lastPos = _transform.position;
             
             TweenContainer.AddSequence = DOTween.Sequence();
@@ -80,7 +85,10 @@ namespace Components
             TweenContainer.AddedSeq.Append(_transform.DOMove(lastPos, 1f));
 
             TweenContainer.AddedSeq.onComplete += onComplete;
-
+            TweenContainer.AddedSeq.onComplete += delegate
+            {
+                _spriteRenderer.sortingOrder = EnvVar.TileSpriteLayer;
+            };
             return TweenContainer.AddedSeq;
         }
     }

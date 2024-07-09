@@ -44,6 +44,7 @@ namespace Components
         [SerializeField] private GameObject _borderTop;
         [SerializeField] private GameObject _borderBot;
         [SerializeField] private Transform _borderTrans;
+        [SerializeField]private int _scoreMulti;
         private Tile _selectedTile;
         private Vector3 _mouseDownPos;
         private Vector3 _mouseUpPos;
@@ -61,7 +62,7 @@ namespace Components
         private const float  _mousethreshold = 1.0f;
         
         public ITweenContainer TweenContainer{get;set;}
-
+        private Coroutine _hintRoutine;
         private void Awake()
         {
             _tilePoolsByPrefabID = new List<MonoPool>();
@@ -155,19 +156,9 @@ namespace Components
             for(int i = 0; i < matches.Count; i ++)
             {
                 List<Tile> match = matches[i];
-                match = match.Where(e => e.ToBeDestroyed == false).ToList();
-
-                if(match.Count > 2)
-                {
-                    matches[i] = match;
-                    match.DoToAll(e => e.ToBeDestroyed = true);
-                }
-                else
-                {
-                    matches.Remove(match);
-                }
+                matches[i] = match.Where(e => e.ToBeDestroyed == false).DoToAll(e => e.ToBeDestroyed = true).ToList();
             }
-
+            matches = matches.Where(e => e.Count > 2).ToList();
             return matches.Count > 0;
         }
 
@@ -192,7 +183,11 @@ namespace Components
                 if(_grid.IsInsideGrid(leftCoord))
                 {
                     Tile toTile = _grid.Get(leftCoord);
-
+                    if (GridF.ControlImmovableIds(toTile))
+                    {
+                        hintTile = null;
+                        continue;
+                    }
                     _grid.Swap(fromTile, toTile);
 
                     matches = _grid.GetMatchesX(fromTile);
@@ -210,6 +205,11 @@ namespace Components
                 if(_grid.IsInsideGrid(topCoord))
                 {
                     Tile toTile = _grid.Get(topCoord);
+                    if (GridF.ControlImmovableIds(toTile))
+                    {
+                        hintTile = null;
+                        continue;
+                    }
                     _grid.Swap(fromTile, toTile);
 
                     matches = _grid.GetMatchesX(fromTile);
@@ -227,6 +227,11 @@ namespace Components
                 if(_grid.IsInsideGrid(rightCoord))
                 {
                     Tile toTile = _grid.Get(rightCoord);
+                    if (GridF.ControlImmovableIds(toTile))
+                    {
+                        hintTile = null;
+                        continue;
+                    }
                     _grid.Swap(fromTile, toTile);
 
                     matches = _grid.GetMatchesX(fromTile);
@@ -244,6 +249,11 @@ namespace Components
                 if(_grid.IsInsideGrid(botCoord))
                 {
                     Tile toTile = _grid.Get(botCoord);
+                    if (GridF.ControlImmovableIds(toTile))
+                    {
+                        hintTile = null;
+                        continue;
+                    }
                     _grid.Swap(fromTile, toTile);
 
                     matches = _grid.GetMatchesX(fromTile);
@@ -283,7 +293,7 @@ namespace Components
                     {
                         Vector2Int emptyCoords = new(x, y1);
 
-                        Tile mostTopTile = _grid.Get(emptyCoords);
+                        
                         
                         if(y1 == spawnPoint)
                         {
@@ -293,15 +303,9 @@ namespace Components
                             }
 
                             MonoPool randomPool;
-                            while (true)
-                            {
-                                int index = Random.Range(0, _tilePoolsByPrefabID.ToList().Count);
-                                if(index == 4 || index == 5) continue;
-                                randomPool = _tilePoolsByPrefabID[index];
-                                break;
-                                
-                                
-                            }
+                            int index = Random.Range(0, _tilePoolsByPrefabID.ToList().Count - 2);
+                            randomPool = _tilePoolsByPrefabID[index];
+                            
                             Tile newTile = SpawnTile
                             (
                                 randomPool, 
@@ -312,7 +316,7 @@ namespace Components
                             _tilesToMove[thisCoord.x, thisCoord.y] = newTile;
                             break;
                         }
-                        
+                        Tile mostTopTile = _grid.Get(emptyCoords);
                         if(mostTopTile)
                         {
                             try
@@ -432,19 +436,54 @@ namespace Components
         private IEnumerator DestroyRoutine()
         {
             
-            GridEvents.MatchGroupDespawn?.Invoke(_lastMatches.Count);
             foreach(List<Tile> matches in _lastMatches)
-            {
-                int groupCount = matches.Count;
+            {            
+                IncScoreMulti();
                 matches.DoToAll(DespawnTile);
-                
+                //TODO: Show score multi text in ui as PunchScale
+
+                GridEvents.MatchGroupDespawn?.Invoke(matches.Count * _scoreMulti);
                 
                 yield return new WaitForSeconds(0.1f);
             }
-            
             SpawnAndAllocateTiles();
         }
+        private void StartHintRoutine()
+        {
+            if(_hintRoutine != null)
+            {
+                StopCoroutine(_hintRoutine);
+            }
 
+            _hintRoutine = StartCoroutine(HintRoutineUpdate());
+        }
+
+        private void StopHintRoutine()
+        {
+            if(_hintTile)
+            {
+                _hintTile.Teleport(_grid.CoordsToWorld(_transform, _hintTile.Coords));
+            }
+            if(_hintRoutine != null)
+            {
+                StopCoroutine(_hintRoutine);
+                _hintRoutine = null;
+            }
+        }
+        private void ResetScoreMulti() {_scoreMulti = 0;}
+
+        private void IncScoreMulti()
+        {
+            _scoreMulti ++;
+        }
+        private IEnumerator HintRoutineUpdate()
+        {
+            while(true)
+            {
+                yield return new WaitForSeconds(3f);
+                TryShowHint();
+            }
+        }
         private void DespawnTile(Tile e)
         {
             _grid.Set(null, e.Coords);
@@ -476,11 +515,16 @@ namespace Components
             InputEvents.MouseDownGrid += OnMouseDownGrid;
             InputEvents.MouseUpGrid += OnMouseUpGrid;
             GridEvents.InputStart += OnInputStart;
+            GridEvents.InputStop += OnInputStop;
         }
-
+        private void OnInputStop()
+        {
+            StopHintRoutine();
+        }
         private void OnInputStart()
         {
-            this.WaitFor(new WaitForSeconds(1f), TryShowHint);
+            StartHintRoutine();
+            ResetScoreMulti();
         }
 
         private void OnMouseDownGrid(Tile clickedTile, Vector3 dirVector)
@@ -503,7 +547,7 @@ namespace Components
             Vector3 dirVector = mouseUpPos - _mouseDownPos;
             
             if(dirVector.magnitude < _mousethreshold) return;
-            if(_selectedTile)
+            if(_selectedTile && _selectedTile.GetSprite().sortingOrder == EnvVar.TileSpriteLayer)
             {
                 if(GridF.ControlImmovableIds(_selectedTile)) return;
                 Vector2Int tileMoveCoord = _selectedTile.Coords + GridF.GetGridDirVector(dirVector);
@@ -554,6 +598,7 @@ namespace Components
             InputEvents.MouseDownGrid -= OnMouseDownGrid;
             InputEvents.MouseUpGrid -= OnMouseUpGrid;
             GridEvents.InputStart -= OnInputStart;
+            GridEvents.InputStop -= OnInputStop;
         }
     }
 }

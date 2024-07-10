@@ -45,6 +45,7 @@ namespace Components
         [SerializeField] private GameObject _borderBot;
         [SerializeField] private Transform _borderTrans;
         [SerializeField]private int _scoreMulti;
+
         private Tile _selectedTile;
         private Vector3 _mouseDownPos;
         private Vector3 _mouseUpPos;
@@ -440,6 +441,7 @@ namespace Components
             {            
                 IncScoreMulti();
                 matches.DoToAll(DespawnTile);
+                SoundManager._instance.PlaySound();
                 //TODO: Show score multi text in ui as PunchScale
 
                 GridEvents.MatchGroupDespawn?.Invoke(matches.Count * _scoreMulti);

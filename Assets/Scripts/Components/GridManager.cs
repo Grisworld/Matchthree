@@ -19,6 +19,7 @@ namespace Components
     {
         [Inject] private InputEvents InputEvents{get;set;}
         [Inject] private GridEvents GridEvents{get;set;}
+        [Inject] private SoundEvents SoundEvents{get;set;}
         [BoxGroup(Order = 999)]
 #if UNITY_EDITOR
         [TableMatrix(SquareCells = true, DrawElementMethod = nameof(DrawTile))]  
@@ -151,7 +152,6 @@ namespace Components
                     matches.Add(matchesAll);
                 }
             }
-            Debug.Log("Count "+matches.Count);
             matches = matches.OrderByDescending(e => e.Count).ToList();
 
             for(int i = 0; i < matches.Count; i ++)
@@ -160,6 +160,8 @@ namespace Components
                 matches[i] = match.Where(e => e.ToBeDestroyed == false).DoToAll(e => e.ToBeDestroyed = true).ToList();
             }
             matches = matches.Where(e => e.Count > 2).ToList();
+            Debug.Log("Count "+matches.Count);
+
             return matches.Count > 0;
         }
 
@@ -169,108 +171,120 @@ namespace Components
             hintTile = null;
             
             List<Tile> matches = new();
-            
+            int maxMatch = 0;
+            int temp = 0;
             foreach(Tile fromTile in _grid)
             {
-                hintTile = fromTile;
-
+                if(GridF.ControlImmovableIds(fromTile)) continue;
                 Vector2Int thisCoord = fromTile.Coords;
 
                 Vector2Int leftCoord = thisCoord + Vector2Int.left;
                 Vector2Int topCoord = thisCoord + Vector2Int.up;
                 Vector2Int rightCoord = thisCoord + Vector2Int.right;
                 Vector2Int botCoord = thisCoord + Vector2Int.down;
-
                 if(_grid.IsInsideGrid(leftCoord))
                 {
                     Tile toTile = _grid.Get(leftCoord);
-                    if (GridF.ControlImmovableIds(toTile))
+                    if (!GridF.ControlImmovableIds(toTile))
                     {
-                        hintTile = null;
-                        continue;
+                        _grid.Swap(fromTile, toTile);
+
+                        matches = _grid.GetMatchesX(fromTile);
+                        matches.AddRange(_grid.GetMatchesY(fromTile));
+
+                        _grid.Swap(toTile, fromTile);
+
+                        if (matches.Count > 0)
+                        {
+                            if (FindMaxHint(maxMatch, matches))
+                            {
+                                maxMatch = matches.Count;
+                                hintDir = GridDir.Left;
+                            }
+                        }
                     }
-                    _grid.Swap(fromTile, toTile);
 
-                    matches = _grid.GetMatchesX(fromTile);
-                    matches.AddRange(_grid.GetMatchesY(fromTile));
-
-                    _grid.Swap(toTile, fromTile);
-
-                    if(matches.Count > 0)
-                    {
-                        hintDir = GridDir.Left;
-                        return false;
-                    }
                 }
-                
                 if(_grid.IsInsideGrid(topCoord))
                 {
                     Tile toTile = _grid.Get(topCoord);
-                    if (GridF.ControlImmovableIds(toTile))
+                    if (!GridF.ControlImmovableIds(toTile))
                     {
-                        hintTile = null;
-                        continue;
-                    }
-                    _grid.Swap(fromTile, toTile);
+                        _grid.Swap(fromTile, toTile);
 
-                    matches = _grid.GetMatchesX(fromTile);
-                    matches.AddRange(_grid.GetMatchesY(fromTile));
-                    
-                    _grid.Swap(toTile, fromTile);
-                    
-                    if(matches.Count > 0)
-                    {
-                        hintDir = GridDir.Up;
-                        return false;
+                        matches = _grid.GetMatchesX(fromTile);
+                        matches.AddRange(_grid.GetMatchesY(fromTile));
+
+                        _grid.Swap(toTile, fromTile);
+
+                        if (matches.Count > 0)
+                        {
+                            if (FindMaxHint(maxMatch, matches))
+                            {
+                                maxMatch = matches.Count;
+                                hintDir = GridDir.Up;
+                            }
+                        }
                     }
                 }
-                
                 if(_grid.IsInsideGrid(rightCoord))
                 {
                     Tile toTile = _grid.Get(rightCoord);
-                    if (GridF.ControlImmovableIds(toTile))
+                    if (!GridF.ControlImmovableIds(toTile))
                     {
-                        hintTile = null;
-                        continue;
-                    }
-                    _grid.Swap(fromTile, toTile);
+                        _grid.Swap(fromTile, toTile);
 
-                    matches = _grid.GetMatchesX(fromTile);
-                    matches.AddRange(_grid.GetMatchesY(fromTile));
-                    
-                    _grid.Swap(toTile, fromTile);
-                    
-                    if(matches.Count > 0)
-                    {
-                        hintDir = GridDir.Right;
-                        return false;
+                        matches = _grid.GetMatchesX(fromTile);
+                        matches.AddRange(_grid.GetMatchesY(fromTile));
+
+                        _grid.Swap(toTile, fromTile);
+
+                        if (matches.Count > 0)
+                        {
+                            if (FindMaxHint(maxMatch, matches))
+                            {
+                                maxMatch = matches.Count;
+                                hintDir = GridDir.Right;
+                            }
+                        }
                     }
+
                 }
-                
                 if(_grid.IsInsideGrid(botCoord))
                 {
                     Tile toTile = _grid.Get(botCoord);
-                    if (GridF.ControlImmovableIds(toTile))
+                    if (!GridF.ControlImmovableIds(toTile))
                     {
-                        hintTile = null;
-                        continue;
-                    }
-                    _grid.Swap(fromTile, toTile);
+                        _grid.Swap(fromTile, toTile);
 
-                    matches = _grid.GetMatchesX(fromTile);
-                    matches.AddRange(_grid.GetMatchesY(fromTile));
-                    
-                    _grid.Swap(toTile, fromTile);
-                    
-                    if(matches.Count > 0)
-                    {
-                        hintDir = GridDir.Down;
-                        return false;
+                        matches = _grid.GetMatchesX(fromTile);
+                        matches.AddRange(_grid.GetMatchesY(fromTile));
+
+                        _grid.Swap(toTile, fromTile);
+
+                        if (matches.Count > 0)
+                        {
+                            if (FindMaxHint(maxMatch, matches))
+                            {
+                                maxMatch = matches.Count;
+                                hintDir = GridDir.Down;
+                            }
+                        }
                     }
+
                 }
+                if(maxMatch > temp) hintTile = fromTile;
+                Debug.Log("maxMatch "+ maxMatch + " hintDir  "+ hintDir+ " cords " + thisCoord);
+                if (maxMatch >= 7) return false;
+                temp = maxMatch;
             }
 
-            return matches.Count == 0;
+            return maxMatch == 0;
+        }
+
+        private static bool FindMaxHint(int maxMatch, List<Tile> matches)
+        {
+            return maxMatch < matches.Count;
         }
 
         private void SpawnAndAllocateTiles()
@@ -441,7 +455,7 @@ namespace Components
             {            
                 IncScoreMulti();
                 matches.DoToAll(DespawnTile);
-                SoundManager._instance.PlaySound();
+                SoundEvents.PlaySound?.Invoke();
                 //TODO: Show score multi text in ui as PunchScale
 
                 GridEvents.MatchGroupDespawn?.Invoke(matches.Count * _scoreMulti);
@@ -505,8 +519,9 @@ namespace Components
             if(_hintTile)
             {
                 Vector2Int gridMoveDir = _hintDir.ToVector();
+                Vector3 gridMoveEase = gridMoveDir.ToVector3XY() * 0.66f;
 
-                Vector3 moveCoords = _grid.CoordsToWorld(_transform, _hintTile.Coords + gridMoveDir);
+                Vector3 moveCoords = _grid.CoordsToWorld(_transform, _hintTile.Coords + gridMoveDir) - gridMoveEase;
                 
                 _hintTween = _hintTile.DoHint(moveCoords);
             }

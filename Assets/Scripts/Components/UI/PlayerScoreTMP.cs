@@ -40,9 +40,11 @@ namespace Components.UI
                 1f,
                 OnCounterUpdate
             );
-
+            
             TweenContainer.AddTween = _counterTween;
         }
+
+        
 
         private void OnCounterUpdate(int val)
         {

@@ -10,9 +10,9 @@ namespace Components
     {
      
         [Inject] private SoundEvents SoundEvents{get;set;}
-        
-        [Inject] private AudioSource AudioSource{get;set;}
-        [Inject] private List<AudioClip> AudioClips{get;set;}
+
+        [SerializeField] private AudioSource AudioSource;
+        [SerializeField] private List<AudioClip> AudioClips;
         
         
         private void OnPlaySound()

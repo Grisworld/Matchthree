@@ -290,13 +290,11 @@ namespace Components
         private void SpawnAndAllocateTiles()
         {
             _tilesToMove = new Tile[_gridSizeX,_gridSizeY];
-            int markedColX = -1;
             for(int y = 0; y < _gridSizeY; y ++)
             {
                 int spawnStartY = 0;
                 for(int x = 0; x < _gridSizeX; x ++)
                 {
-                    if(markedColX != -1) continue;
                     Vector2Int thisCoord = new(x, y);
                     Tile thisTile = _grid.Get(thisCoord);
 
@@ -307,9 +305,6 @@ namespace Components
                     for(int y1 = y; y1 <= spawnPoint; y1 ++)
                     {
                         Vector2Int emptyCoords = new(x, y1);
-
-                        
-                        
                         if(y1 == spawnPoint)
                         {
                             if(spawnStartY == 0)
@@ -334,28 +329,7 @@ namespace Components
                         Tile mostTopTile = _grid.Get(emptyCoords);
                         if(mostTopTile)
                         {
-                            try
-                            {
-                                if (y1 < _gridSizeY - 1 && GridF.ControlImmovableIds(_grid.Get(new(x, y1 + 1))))
-                                {
-                                    
-                                    markedColX = x == 0 ? 0 : 1; //TO DO...
-                                    if (markedColX == 0)
-                                    {
-                                        Debug.Log("Entered??!'  " + (x+1)+ "  y "+ y1);
-                                        mostTopTile = _grid.Get(new Vector2Int(x + 1, y1));
-                                    }
-                                    else
-                                    {
-                                        Debug.Log("Entered?421?!'  " + (x-1)+ "  y  " + y1);
-                                        mostTopTile = _grid.Get(new Vector2Int(x - 1, y1));
-                                    }
-                                }
-                            }
-                            catch(Exception e)
-                            {
-                                Debug.Log("y1  "+y1);
-                            }
+                            
                             
                             _grid.Set(null, mostTopTile.Coords);
                             _grid.Set(mostTopTile, thisCoord);

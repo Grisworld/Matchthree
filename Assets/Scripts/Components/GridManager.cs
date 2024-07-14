@@ -538,13 +538,11 @@ namespace Components
             Vector3 dirVector = mouseUpPos - _mouseDownPos;
             
             if(dirVector.magnitude < _mousethreshold) return;
-            if(_selectedTile && _selectedTile.GetSprite().sortingOrder == EnvVar.TileSpriteLayer)
+            if(_selectedTile )
             {
                 if(GridF.ControlImmovableIds(_selectedTile)) return;
                 Vector2Int tileMoveCoord = _selectedTile.Coords + GridF.GetGridDirVector(dirVector);
-                
                 if(! CanMove(tileMoveCoord)) return;
-
                 Tile toTile = _grid.Get(tileMoveCoord);
                 if(GridF.ControlImmovableIds(toTile)) return;
                 

@@ -7767,6 +7767,8 @@ MonoBehaviour:
   _borderBot: {fileID: 1635248666945025495, guid: ead817893a0e409499d68d04db5b9f44, type: 3}
   _borderTrans: {fileID: 197866825}
   _scoreMulti: 0
+  _gunPrefab: {fileID: 237949179621205325, guid: 784ae1f5efe38534ea268a445bd7d3e9, type: 3}
+  _bulletPrefab: {fileID: 7084619117482334549, guid: ac75f884283df6b4ead350deeba30523, type: 3}
 --- !u!1001 &727835960
 PrefabInstance:
   m_ObjectHideFlags: 0
@@ -18579,7 +18581,7 @@ AudioSource:
   m_PrefabInstance: {fileID: 0}
   m_PrefabAsset: {fileID: 0}
   m_GameObject: {fileID: 2002387813}
-  m_Enabled: 1
+  m_Enabled: 0
   serializedVersion: 4
   OutputAudioMixerGroup: {fileID: 0}
   m_audioClip: {fileID: 8300000, guid: dc4fa3b4e75bbf24e8e51bc9f17ac22a, type: 3}

@@ -2,6 +2,7 @@
 using System.Collections;
 using System.Collections.Generic;
 using System.Linq;
+using Components.EffectObjects;
 using DG.Tweening;
 using Events;
 using Extensions.DoTween;
@@ -9,6 +10,7 @@ using Extensions.System;
 using Extensions.Unity;
 using Sirenix.OdinInspector;
 using Sirenix.Serialization;
+using UnityEditor;
 using UnityEngine;
 using Zenject;
 using Random = UnityEngine.Random;
@@ -45,8 +47,10 @@ namespace Components
         [SerializeField] private GameObject _borderTop;
         [SerializeField] private GameObject _borderBot;
         [SerializeField] private Transform _borderTrans;
-        [SerializeField]private int _scoreMulti;
-
+        [SerializeField] private int _scoreMulti;
+        [SerializeField] private GameObject _gunPrefab;
+        [SerializeField] private GameObject _bulletPrefab;
+        
         private Tile _selectedTile;
         private Vector3 _mouseDownPos;
         private Vector3 _mouseUpPos;
@@ -61,7 +65,8 @@ namespace Components
         private GridDir _hintDir;
         private Sequence _hintTween;
         private Coroutine _destroyRoutine;
-        private const float  _mousethreshold = 1.0f;
+        private const float  Mousethreshold = 1.0f;
+        private int _bulletTrigger;
         
         public ITweenContainer TweenContainer{get;set;}
         private Coroutine _hintRoutine;
@@ -89,6 +94,7 @@ namespace Components
 
         private void Start()
         {
+            _bulletTrigger = 0;
             for(int x = 0; x < _grid.GetLength(0); x ++)
             for(int y = 0; y < _grid.GetLength(1); y ++)
             {
@@ -537,8 +543,8 @@ namespace Components
 
             Vector3 dirVector = mouseUpPos - _mouseDownPos;
             
-            if(dirVector.magnitude < _mousethreshold) return;
-            if(_selectedTile )
+            if(dirVector.magnitude < Mousethreshold) return;
+            if(_selectedTile)
             {
                 if(GridF.ControlImmovableIds(_selectedTile)) return;
                 Vector2Int tileMoveCoord = _selectedTile.Coords + GridF.GetGridDirVector(dirVector);
@@ -571,17 +577,72 @@ namespace Components
                 else
                 {
                     GridEvents.InputStop?.Invoke();
-
+                    _bulletTrigger++;
+                    _bulletTrigger %= 3;
                     DoTileMoveAnim
                     (
                         _selectedTile,
                         toTile,
-                        StartDestroyRoutine
+                        _bulletTrigger == 0 ? SpawnGunAndDestroyThoseLines : StartDestroyRoutine
                     );
                 }
             }
         }
 
+        private void SpawnGunAndDestroyThoseLines()
+        {
+            for (int x = 0; x < _gridSizeX; x++)
+            {
+                for (int y = 0; y < _gridSizeY; y++)
+                {
+                    Tile thisTile = _grid[x, y];
+                    if (thisTile.ID == 5) //RIGHT
+                    {
+                        Vector3 pos = _grid.CoordsToWorld(_transform, thisTile.Coords);
+                        GameObject gunNew = PrefabUtility.InstantiatePrefab
+                        (
+                            _gunPrefab
+                        ) as GameObject;
+                        GameObject bulletNew = PrefabUtility.InstantiatePrefab
+                        (
+                            _bulletPrefab
+                        ) as GameObject;
+                        bulletNew.transform.position = pos;
+                        //x = +-0.606 for summon and +-0.426 to put
+                        pos.y -= 0.22f;
+                        pos.x -= 0.606f;
+                        gunNew.transform.position = pos;
+                        Vector3 tLoc = new Vector3(pos.x + 0.18f, pos.y, pos.z);
+                        Gun gun = gunNew.GetComponent<Gun>();
+                        gun.MoveAndSpawn(tLoc);
+
+                    }
+                    else if (thisTile.ID == 4) //LEFT
+                    {
+                        Vector3 pos = _grid.CoordsToWorld(_transform, thisTile.Coords);
+                        GameObject gunNew = PrefabUtility.InstantiatePrefab
+                        (
+                            _gunPrefab
+                        ) as GameObject;
+                        GameObject bulletNew = PrefabUtility.InstantiatePrefab
+                        (
+                            _bulletPrefab
+                        ) as GameObject;
+                        bulletNew.transform.position = pos;
+                        
+                        pos.y -= 0.22f;
+                        pos.x += 0.606f;
+                        gunNew.transform.position = pos;
+                        Vector3 tLoc = new Vector3(pos.x - 0.18f, pos.y, pos.z);
+                        Gun gun = gunNew.GetComponent<Gun>();
+                        gun.MoveAndSpawn(tLoc);
+                        gun.GetSprite().flipX = true;
+                        Bullet bullet = bulletNew.GetComponent<Bullet>();
+                        bullet.GetSprite().flipX = true;
+                    }
+                }
+            }
+        }
         private void UnRegisterEvents()
         {
             InputEvents.MouseDownGrid -= OnMouseDownGrid;

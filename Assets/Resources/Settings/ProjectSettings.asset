@@ -1,0 +1,36 @@
+%YAML 1.1
+%TAG !u! tag:unity3d.com,2011:
+--- !u!114 &11400000
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 0}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: ca2e05d8540947c59ccb01a7823f3ff2, type: 3}
+  m_Name: ProjectSettings
+  m_EditorClassIdentifier: 
+  _gridManagerSettings:
+    _tileBGPrefab: {fileID: 7484572631733551300, guid: 176c9441241f0d94a8417c2311e067d2, type: 3}
+    _prefabIds: 000000000100000002000000030000000400000005000000
+    _tilePrefabs:
+    - {fileID: 8434446252515013083, guid: 57a9ba1a875a28f4cb40e021ec3098b4, type: 3}
+    - {fileID: 8566441134246633, guid: 4d86a52836de5a245a0325ff22912a19, type: 3}
+    - {fileID: 1555561410406133110, guid: eca872c0911c8b6479423e474cace6ce, type: 3}
+    - {fileID: 3772332987325681798, guid: 75c9eef7c5a2e614380ec4d842e8ddb0, type: 3}
+    - {fileID: 2580041057698459631, guid: 6712a112864e3bb458f1120783ff2a18, type: 3}
+    - {fileID: 7206496203192991218, guid: 6e320e47e1324c5408dfe5e0339ef61a, type: 3}
+    _borderTopLeft: {fileID: 2152663313870301964, guid: 9811c68b553af434b94ba5f7f168de2a, type: 3}
+    _borderTopRight: {fileID: 6561376347785393725, guid: d4b39be01f25d75439745d94a02021ae, type: 3}
+    _borderBotLeft: {fileID: 7587880543893306021, guid: 1162e4800db2c364db7abd2a547a54e4, type: 3}
+    _borderBotRight: {fileID: 7050932377025193495, guid: 7b665a00ccf7df646b8e0d25974a2698, type: 3}
+    _borderLeft: {fileID: 8626515100957820327, guid: f3cbc99343c54174b976f145740500a8, type: 3}
+    _borderRight: {fileID: 8668363614849081371, guid: 30f84e11df8085041a43b2cd5a6e4f7d, type: 3}
+    _borderTop: {fileID: 1289836626466577411, guid: 2c29b552732fae042884b87f2fbc70cb, type: 3}
+    _borderBot: {fileID: 1635248666945025495, guid: ead817893a0e409499d68d04db5b9f44, type: 3}
+    _gun: {fileID: 237949179621205325, guid: 784ae1f5efe38534ea268a445bd7d3e9, type: 3}
+    _bullet: {fileID: 7084619117482334549, guid: ac75f884283df6b4ead350deeba30523, type: 3}
+  _gunSettings:
+    _explosionGas: {fileID: 100006, guid: e076683e0305e35498b8e8834978c0fa, type: 3}

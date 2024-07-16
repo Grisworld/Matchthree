@@ -1,7 +1,8 @@
 using Events;
 using UnityEngine.SceneManagement;
 using Zenject;
-
+using Settings;
+using UnityEngine;
 namespace Installers
 {
     public class ProjectInstaller : MonoInstaller<ProjectInstaller>
@@ -10,8 +11,15 @@ namespace Installers
         private InputEvents _inputEvents;
         private GridEvents _gridEvents;
         private SoundEvents _soundEvents;
+        private ProjectSettings _projectSettings;
 
         public override void InstallBindings()
+        {
+            InstallEvents();
+            InstallSettings();
+        }
+
+        private void InstallEvents()
         {
             _projectEvents = new ProjectEvents();
             Container.BindInstance(_projectEvents).AsSingle();
@@ -24,9 +32,13 @@ namespace Installers
             
             _soundEvents = new SoundEvents();
             Container.BindInstance(_soundEvents).AsSingle();
-            
         }
 
+        private void InstallSettings()
+        {
+            _projectSettings = Resources.Load<ProjectSettings>(EnvVar.ProjectSettingsPath);
+            Container.BindInstance(_projectSettings).AsSingle();
+        }
         private void Awake()
         {
             RegisterEvents();

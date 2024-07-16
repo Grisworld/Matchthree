@@ -10,9 +10,9 @@ using Extensions.System;
 using Extensions.Unity;
 using Sirenix.OdinInspector;
 using Sirenix.Serialization;
-using UnityEditor;
 using UnityEngine;
 using Zenject;
+using Settings;
 using Random = UnityEngine.Random;
 
 namespace Components
@@ -22,34 +22,24 @@ namespace Components
         [Inject] private InputEvents InputEvents{get;set;}
         [Inject] private GridEvents GridEvents{get;set;}
         [Inject] private SoundEvents SoundEvents{get;set;}
+        [Inject] private ProjectSettings ProjectSettings{get;set;}
         [BoxGroup(Order = 999)]
 #if UNITY_EDITOR
         [TableMatrix(SquareCells = true, DrawElementMethod = nameof(DrawTile))]  
 #endif
         [OdinSerialize]
         private Tile[,] _grid;
-        [SerializeField] private List<GameObject> _tilePrefabs;
         [SerializeField] private int _gridSizeX;
         [SerializeField] private int _gridSizeY;
-        [SerializeField] private List<int> _prefabIds;
         [SerializeField] private Bounds _gridBounds;
         [SerializeField] private Transform _transform;
         [SerializeField] private List<GameObject> _tileBGs = new();
         [SerializeField] private List<GameObject> _gridBorders = new();
-        [SerializeField] private GameObject _tileBGPrefab;
         [SerializeField] private Transform _bGTrans;
-        [SerializeField] private GameObject _borderTopLeft;
-        [SerializeField] private GameObject _borderTopRight;
-        [SerializeField] private GameObject _borderBotLeft;
-        [SerializeField] private GameObject _borderBotRight;
-        [SerializeField] private GameObject _borderLeft;
-        [SerializeField] private GameObject _borderRight;
-        [SerializeField] private GameObject _borderTop;
-        [SerializeField] private GameObject _borderBot;
+        
         [SerializeField] private Transform _borderTrans;
         [SerializeField] private int _scoreMulti;
-        [SerializeField] private GameObject _gunPrefab;
-        [SerializeField] private GameObject _bulletPrefab;
+        private Settings _mySettings;
         
         private Tile _selectedTile;
         private Vector3 _mouseDownPos;
@@ -65,6 +55,7 @@ namespace Components
         private GridDir _hintDir;
         private Sequence _hintTween;
         private Coroutine _destroyRoutine;
+        private Coroutine _gunSpawnRoutine;
         private const float  Mousethreshold = 1.0f;
         private int _bulletTrigger;
         
@@ -72,15 +63,16 @@ namespace Components
         private Coroutine _hintRoutine;
         private void Awake()
         {
+            _mySettings = ProjectSettings.GridManagerSettings;
             _tilePoolsByPrefabID = new List<MonoPool>();
             
-            for(int prefabId = 0; prefabId < _prefabIds.Count; prefabId ++)
+            for(int prefabId = 0; prefabId < _mySettings.PrefabIDs.Count; prefabId ++)
             {
                 MonoPool tilePool = new
                 (
                     new MonoPoolData
                     (
-                        _tilePrefabs[prefabId],
+                        _mySettings.TilePrefabs[prefabId],
                         prefabId == 4 || prefabId == 5 ? 1 :10,
                         _transform
                     )
@@ -166,7 +158,6 @@ namespace Components
                 matches[i] = match.Where(e => e.ToBeDestroyed == false).DoToAll(e => e.ToBeDestroyed = true).ToList();
             }
             matches = matches.Where(e => e.Count > 2).ToList();
-            Debug.Log("Count "+matches.Count);
 
             return matches.Count > 0;
         }
@@ -280,7 +271,7 @@ namespace Components
 
                 }
                 if(maxMatch > temp) hintTile = fromTile;
-                Debug.Log("maxMatch "+ maxMatch + " hintDir  "+ hintDir+ " cords " + thisCoord);
+                //Debug.Log("maxMatch "+ maxMatch + " hintDir  "+ hintDir+ " cords " + thisCoord);
                 if (maxMatch >= 7) return false;
                 temp = maxMatch;
             }
@@ -335,8 +326,6 @@ namespace Components
                         Tile mostTopTile = _grid.Get(emptyCoords);
                         if(mostTopTile)
                         {
-                            
-                            
                             _grid.Set(null, mostTopTile.Coords);
                             _grid.Set(mostTopTile, thisCoord);
                             
@@ -400,6 +389,11 @@ namespace Components
             {
                 longestTween.onComplete += delegate
                 {
+                    //SHOULD BE WRITTEN HERE
+                    if (_bulletTrigger == 0)
+                    {
+                        SpawnGunAndDestroyThoseLines();
+                    }
                     if(HasAnyMatches(out _lastMatches))
                     {
                         StartDestroyRoutine();
@@ -437,7 +431,7 @@ namespace Components
                 matches.DoToAll(DespawnTile);
                 SoundEvents.PlaySound?.Invoke();
                 //TODO: Show score multi text in ui as PunchScale
-
+                
                 GridEvents.MatchGroupDespawn?.Invoke(matches.Count * _scoreMulti);
                 
                 yield return new WaitForSeconds(0.1f);
@@ -583,14 +577,15 @@ namespace Components
                     (
                         _selectedTile,
                         toTile,
-                        _bulletTrigger == 0 ? SpawnGunAndDestroyThoseLines : StartDestroyRoutine
+                        StartDestroyRoutine
                     );
                 }
             }
         }
-
+        
         private void SpawnGunAndDestroyThoseLines()
         {
+            //ONLY ONE COURUTINE
             for (int x = 0; x < _gridSizeX; x++)
             {
                 for (int y = 0; y < _gridSizeY; y++)
@@ -599,14 +594,16 @@ namespace Components
                     if (thisTile.ID == 5) //RIGHT
                     {
                         Vector3 pos = _grid.CoordsToWorld(_transform, thisTile.Coords);
-                        GameObject gunNew = PrefabUtility.InstantiatePrefab
+                        if(_mySettings.Gun == null)
+                            Debug.Log("THe gun is null too?");
+                        GameObject gunNew = Instantiate
                         (
-                            _gunPrefab
-                        ) as GameObject;
-                        GameObject bulletNew = PrefabUtility.InstantiatePrefab
+                            _mySettings.Gun
+                        );
+                        GameObject bulletNew = Instantiate
                         (
-                            _bulletPrefab
-                        ) as GameObject;
+                            _mySettings.Bullet
+                        );
                         bulletNew.transform.position = pos;
                         //x = +-0.606 for summon and +-0.426 to put
                         pos.y -= 0.22f;
@@ -614,20 +611,27 @@ namespace Components
                         gunNew.transform.position = pos;
                         Vector3 tLoc = new Vector3(pos.x + 0.18f, pos.y, pos.z);
                         Gun gun = gunNew.GetComponent<Gun>();
-                        gun.MoveAndSpawn(tLoc);
+                        //gun.MoveAndSpawn(tLoc);
+                        
+                        List<int> numbers = new List<int> { 1, 2, 3, 4, 5, 6, 7, 8, 9, 10 };
+
+                        
+
 
                     }
                     else if (thisTile.ID == 4) //LEFT
                     {
                         Vector3 pos = _grid.CoordsToWorld(_transform, thisTile.Coords);
-                        GameObject gunNew = PrefabUtility.InstantiatePrefab
+                        GameObject gunNew = Instantiate
                         (
-                            _gunPrefab
-                        ) as GameObject;
-                        GameObject bulletNew = PrefabUtility.InstantiatePrefab
+                            _mySettings.Gun
+                        );
+                       
+                        GameObject bulletNew = Instantiate
                         (
-                            _bulletPrefab
-                        ) as GameObject;
+                            _mySettings.Bullet
+                        );
+                        
                         bulletNew.transform.position = pos;
                         
                         pos.y -= 0.22f;
@@ -635,13 +639,15 @@ namespace Components
                         gunNew.transform.position = pos;
                         Vector3 tLoc = new Vector3(pos.x - 0.18f, pos.y, pos.z);
                         Gun gun = gunNew.GetComponent<Gun>();
-                        gun.MoveAndSpawn(tLoc);
+                        //gun.MoveAndSpawn(tLoc);
                         gun.GetSprite().flipX = true;
                         Bullet bullet = bulletNew.GetComponent<Bullet>();
                         bullet.GetSprite().flipX = true;
                     }
                 }
             }
+
+            //yield return RainDownRoutine();// GOES INTO THIS ROUTINE AND RETURN THIS ONE
         }
         private void UnRegisterEvents()
         {
@@ -649,6 +655,45 @@ namespace Components
             InputEvents.MouseUpGrid -= OnMouseUpGrid;
             GridEvents.InputStart -= OnInputStart;
             GridEvents.InputStop -= OnInputStop;
+        }
+
+        public class GridManagerNested
+        {
+            public void Main()
+            {
+                GridManager gridManager = new GridManager();
+                gridManager.UnRegisterEvents();
+            }
+        }
+        [Serializable]
+        public class Settings
+        {
+            public List<GameObject> TilePrefabs => _tilePrefabs;
+            public List<int> PrefabIDs => _prefabIds;
+            public GameObject TileBGPrefab => _tileBGPrefab;
+            [SerializeField] private GameObject _tileBGPrefab;
+            [SerializeField] private List<int> _prefabIds;
+            [SerializeField] private List<GameObject> _tilePrefabs;
+            [SerializeField] private GameObject _borderTopLeft;
+            [SerializeField] private GameObject _borderTopRight;
+            [SerializeField] private GameObject _borderBotLeft;
+            [SerializeField] private GameObject _borderBotRight;
+            [SerializeField] private GameObject _borderLeft;
+            [SerializeField] private GameObject _borderRight;
+            [SerializeField] private GameObject _borderTop;
+            [SerializeField] private GameObject _borderBot;
+            [SerializeField] private GameObject _gun;
+            [SerializeField] private GameObject _bullet;
+            public GameObject BorderTopLeft => _borderTopLeft;
+            public GameObject BorderTopRight => _borderTopRight;
+            public GameObject BorderBotLeft => _borderBotLeft;
+            public GameObject BorderBotRight => _borderBotRight;
+            public GameObject BorderLeft => _borderLeft;
+            public GameObject BorderRight => _borderRight;
+            public GameObject BorderTop => _borderTop;
+            public GameObject BorderBot => _borderBot;
+            public GameObject Gun => _gun;
+            public GameObject Bullet => _bullet;
         }
     }
 }

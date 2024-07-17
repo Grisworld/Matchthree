@@ -58,7 +58,7 @@ namespace Components
         private Coroutine _gunSpawnRoutine;
         private const float  Mousethreshold = 1.0f;
         private int _bulletTrigger;
-        
+        private bool _triggered;
         public ITweenContainer TweenContainer{get;set;}
         private Coroutine _hintRoutine;
         private void Awake()
@@ -87,6 +87,7 @@ namespace Components
         private void Start()
         {
             _bulletTrigger = 0;
+            _triggered = false;
             for(int x = 0; x < _grid.GetLength(0); x ++)
             for(int y = 0; y < _grid.GetLength(1); y ++)
             {
@@ -390,9 +391,11 @@ namespace Components
                 longestTween.onComplete += delegate
                 {
                     //SHOULD BE WRITTEN HERE
-                    if (_bulletTrigger == 0)
+                    if (_bulletTrigger == 0 && !_triggered)
                     {
-                        SpawnGunAndDestroyThoseLines();
+                        _triggered = true;
+                        StartSpawnGunRoutine();
+                        return;
                     }
                     if(HasAnyMatches(out _lastMatches))
                     {
@@ -573,6 +576,7 @@ namespace Components
                     GridEvents.InputStop?.Invoke();
                     _bulletTrigger++;
                     _bulletTrigger %= 3;
+                    _triggered = false;
                     DoTileMoveAnim
                     (
                         _selectedTile,
@@ -582,8 +586,16 @@ namespace Components
                 }
             }
         }
-        
-        private void SpawnGunAndDestroyThoseLines()
+        private void StartSpawnGunRoutine()
+        {
+            if(_gunSpawnRoutine != null)
+            {
+                StopCoroutine(_gunSpawnRoutine);
+            }
+            
+            _gunSpawnRoutine = StartCoroutine(SpawnGunAndDestroyThoseLines());
+        }
+        private IEnumerator SpawnGunAndDestroyThoseLines()
         {
             //ONLY ONE COURUTINE
             for (int x = 0; x < _gridSizeX; x++)
@@ -591,11 +603,14 @@ namespace Components
                 for (int y = 0; y < _gridSizeY; y++)
                 {
                     Tile thisTile = _grid[x, y];
-                    if (thisTile.ID == 5) //RIGHT
+                    int bulletOffSet = 8;
+                    Sequence fireSeq = DOTween.Sequence();
+                    if (thisTile.ID == EnvVar.TileRightArrow) //RIGHT
                     {
                         Vector3 pos = _grid.CoordsToWorld(_transform, thisTile.Coords);
-                        if(_mySettings.Gun == null)
-                            Debug.Log("THe gun is null too?");
+                        float bulletLocOffSet = _grid[_gridSizeX - 1, y].ID == EnvVar.TileLeftArrow ? 
+                            pos.x + bulletOffSet : pos.x + bulletOffSet + 1;
+                        
                         GameObject gunNew = Instantiate
                         (
                             _mySettings.Gun
@@ -605,23 +620,27 @@ namespace Components
                             _mySettings.Bullet
                         );
                         bulletNew.transform.position = pos;
+                        Vector3 bulletLocPos =
+                            new Vector3(bulletLocOffSet, pos.y, pos.z);
                         //x = +-0.606 for summon and +-0.426 to put
                         pos.y -= 0.22f;
                         pos.x -= 0.606f;
                         gunNew.transform.position = pos;
                         Vector3 tLoc = new Vector3(pos.x + 0.18f, pos.y, pos.z);
                         Gun gun = gunNew.GetComponent<Gun>();
-                        //gun.MoveAndSpawn(tLoc);
+                        fireSeq.Append(gun.MoveAndSpawn(tLoc));
+                        Bullet bullet = bulletNew.GetComponent<Bullet>();
+                        fireSeq.Append(SendTheBullet(bulletLocPos,bullet));
+                        fireSeq.Append(bullet.DestroyBullet());
+                        yield return new WaitForSeconds(3.5f);
                         
-                        List<int> numbers = new List<int> { 1, 2, 3, 4, 5, 6, 7, 8, 9, 10 };
-
-                        
-
-
                     }
-                    else if (thisTile.ID == 4) //LEFT
+                    else if (thisTile.ID == EnvVar.TileLeftArrow) //LEFT
                     {
                         Vector3 pos = _grid.CoordsToWorld(_transform, thisTile.Coords);
+                        float bulletLocOffSet = _grid[0, y].ID == EnvVar.TileLeftArrow ? 
+                            pos.x - bulletOffSet : pos.x - (bulletOffSet + 1); 
+                        
                         GameObject gunNew = Instantiate
                         (
                             _mySettings.Gun
@@ -633,21 +652,60 @@ namespace Components
                         );
                         
                         bulletNew.transform.position = pos;
-                        
+                        Vector3 bulletLocPos =
+                            new Vector3(bulletLocOffSet, pos.y, pos.z);
                         pos.y -= 0.22f;
                         pos.x += 0.606f;
                         gunNew.transform.position = pos;
                         Vector3 tLoc = new Vector3(pos.x - 0.18f, pos.y, pos.z);
                         Gun gun = gunNew.GetComponent<Gun>();
-                        //gun.MoveAndSpawn(tLoc);
+                        fireSeq.Append(gun.MoveAndSpawn(tLoc));
                         gun.GetSprite().flipX = true;
                         Bullet bullet = bulletNew.GetComponent<Bullet>();
                         bullet.GetSprite().flipX = true;
+                        fireSeq.Append(SendTheBullet(bulletLocPos,bullet));
+                        
+                        fireSeq.Append(bullet.DestroyBullet());
+                        yield return new WaitForSeconds(3.5f);
                     }
                 }
             }
-
+            
+            if (HasAnyMatches(out _lastMatches))
+            {
+                StartDestroyRoutine();
+            }
+            else
+            {
+                GridEvents.InputStart?.Invoke();
+            }
             //yield return RainDownRoutine();// GOES INTO THIS ROUTINE AND RETURN THIS ONE
+        }
+//After 0.7 difference Rain that Column
+        private Tween SendTheBullet(Vector3 bulletLocPos, Bullet bullet)
+        {
+            Tween bulletPosTw = bullet.GetTransform().DOMove(bulletLocPos, 1.85f);
+            Tile lastTile = null;
+            bulletPosTw.onUpdate += delegate
+            {
+                Vector3 currPosOfBullet = bullet.GetTransform().position;
+                Tile shottedTile  = _grid[(int)currPosOfBullet.x, (int)currPosOfBullet.y];
+                if (shottedTile != null && ! GridF.ControlImmovableIds(shottedTile))
+                {
+                    if (_grid.CoordsToWorld(_transform, shottedTile.Coords).x - currPosOfBullet.x < 0.550001f )
+                        DespawnTile(shottedTile);
+                       
+                }
+                //LAST PART
+                else if (shottedTile == null)
+                {
+                    if( currPosOfBullet.x - _grid.CoordsToWorld(_transform, lastTile.Coords).x < 
+                       0.750001f ) Debug.Log("Tile is avaible after destroyed?");
+                }
+                lastTile = shottedTile;
+                Debug.Log("Bullet is gone  "+currPosOfBullet +" idOfThatTİle "+ shottedTile.ID);
+            };
+            return bulletPosTw;
         }
         private void UnRegisterEvents()
         {

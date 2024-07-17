@@ -12,5 +12,6 @@ public static class EnvVar
     public const int HintSpriteLayer = 1;
     public const int TileSpriteLayer = 0;
     public const int TileBGSpriteLayer = -1;
-    public const int TileBoxID = 4;
+    public const int TileRightArrow = 5;
+    public const int TileLeftArrow = 4;
 }

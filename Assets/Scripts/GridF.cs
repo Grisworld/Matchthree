@@ -420,7 +420,7 @@ public static class GridF
 
     public static bool ControlImmovableIds(Tile tile)
     {
-        return tile.ID == 4 || tile.ID == 5;
+        return tile.ID == EnvVar.TileLeftArrow || tile.ID == EnvVar.TileRightArrow;
     }
 }
 

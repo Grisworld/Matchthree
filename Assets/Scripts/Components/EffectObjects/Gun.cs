@@ -43,10 +43,13 @@ namespace Components.EffectObjects
         }
 
 
-        public void MoveAndSpawn(Vector3 toLocation)
+        public Tween MoveAndSpawn(Vector3 toLocation)
         {
             TweenContainer.AddTween = _transform.DOMove(toLocation, 1.85f);
             TweenContainer.AddTween = _spriteRenderer.DOFade(1f, 1.85f);
+            //TweenContainer.AddTween = _transform.DORotate(new Vector3(0f, 0f, 360f), 1f, RotateMode.WorldAxisAdd);
+            
+            return TweenContainer.AddedTween;
         }
 
         [Serializable]

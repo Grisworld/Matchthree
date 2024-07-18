@@ -11,6 +11,8 @@ GameObject:
   - component: {fileID: 8239446763939199695}
   - component: {fileID: 1089496161278818015}
   - component: {fileID: 2756899018960657602}
+  - component: {fileID: 512594840568350871}
+  - component: {fileID: -6891147850627117954}
   m_Layer: 0
   m_Name: Gun
   m_TagString: Untagged
@@ -99,3 +101,33 @@ MonoBehaviour:
   m_EditorClassIdentifier: 
   _spriteRenderer: {fileID: 1089496161278818015}
   _transform: {fileID: 8239446763939199695}
+--- !u!114 &512594840568350871
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 237949179621205325}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 08eca9f7688a0a24685b89133b020c8e, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: 
+  _scriptableObjectInstallers: []
+  _monoInstallers:
+  - {fileID: -6891147850627117954}
+  _installerPrefabs: []
+  _autoRun: 1
+  _kernel: {fileID: 0}
+--- !u!114 &-6891147850627117954
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 237949179621205325}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: fdbfa69ea74ea3a4c82bb86ff5936859, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: 

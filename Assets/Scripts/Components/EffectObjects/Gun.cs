@@ -24,7 +24,7 @@ namespace Components.EffectObjects
             {
                 Debug.Log("Its null!!");
             }
-//            _myGunSettings = ProjectSettings.GunSettings;
+            _myGunSettings = ProjectSettings.GunSettings;
             var color = _spriteRenderer.color;
             color.a = 0f;
             _spriteRenderer.color = color;
@@ -47,6 +47,7 @@ namespace Components.EffectObjects
         {
             TweenContainer.AddTween = _transform.DOMove(toLocation, 1.85f);
             TweenContainer.AddTween = _spriteRenderer.DOFade(1f, 1.85f);
+            
             //TweenContainer.AddTween = _transform.DORotate(new Vector3(0f, 0f, 360f), 1f, RotateMode.WorldAxisAdd);
             
             return TweenContainer.AddedTween;

@@ -1,4 +1,5 @@
-﻿using UnityEngine;
+﻿using System;
+using UnityEngine;
 using UnityEngine.Events;
 
 namespace Events
@@ -9,5 +10,6 @@ namespace Events
         public UnityAction InputStart;
         public UnityAction InputStop;
         public UnityAction<int> MatchGroupDespawn;
+        public Func<GameObject, GameObject> InsPrefab;
     }
 }

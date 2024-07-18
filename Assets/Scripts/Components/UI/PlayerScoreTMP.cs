@@ -14,7 +14,7 @@ namespace Components.UI
         public ITweenContainer TweenContainer{get;set;}
         private int _currCounterVal;
         private int _playerScore;
-
+        //DOPUNCH SCALE 5
         private void Awake()
         {
             TweenContainer = TweenContain.Install(this);

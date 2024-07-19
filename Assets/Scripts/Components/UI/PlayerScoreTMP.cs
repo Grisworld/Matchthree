@@ -2,6 +2,7 @@
 using Events;
 using Extensions.DoTween;
 using Extensions.Unity.MonoHelper;
+using TMPro;
 using UnityEngine;
 using Zenject;
 
@@ -10,7 +11,11 @@ namespace Components.UI
     public class PlayerScoreTMP : UITMP, ITweenContainerBind
     {
         [Inject] private GridEvents GridEvents{get;set;}
+        [SerializeField] private TextMeshProUGUI _multTMP;
+        [SerializeField] private RectTransform _multRectTrans;
+        private Sequence _scoreSeq;
         private Tween _counterTween;
+        private Tween _multTween;
         public ITweenContainer TweenContainer{get;set;}
         private int _currCounterVal;
         private int _playerScore;
@@ -25,13 +30,16 @@ namespace Components.UI
             GridEvents.MatchGroupDespawn += OnMatchGroupDespawn;
         }
 
-        private void OnMatchGroupDespawn(int arg0)
+        private void OnMatchGroupDespawn(int arg0, int mult)
         {
             Debug.LogWarning($"{arg0}");
             
             _playerScore += arg0;
 
             if(_counterTween.IsActive()) _counterTween.Kill();
+            if(_multTween.IsActive()) _multTween.Kill();
+            if(_scoreSeq.IsActive()) _scoreSeq.Kill();
+            _scoreSeq = DOTween.Sequence();
             
             _counterTween = DOVirtual.Int
             (
@@ -40,8 +48,16 @@ namespace Components.UI
                 1f,
                 OnCounterUpdate
             );
-            
-            TweenContainer.AddTween = _counterTween;
+            _counterTween.onComplete += delegate { _multTMP.enabled = true; _multTMP.text = $"Mult: {mult}";};
+            _multTween = _multRectTrans.DOPunchScale(Vector3.one * 5, 2f, 15);
+            _scoreSeq.Append(_counterTween);
+            _scoreSeq.Append(_multTween);
+            TweenContainer.AddSequence = _scoreSeq;
+            TweenContainer.AddedSeq.onComplete += delegate
+            {
+                _multRectTrans.localScale = Vector3.one;
+                _multTMP.enabled = false;
+            };
         }
 
         

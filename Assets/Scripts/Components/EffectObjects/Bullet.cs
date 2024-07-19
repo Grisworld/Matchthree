@@ -15,6 +15,9 @@ namespace Components.EffectObjects
         private void Awake()
         {
             TweenContainer = TweenContain.Install(this);
+            var color = _spriteRenderer.color;
+            color.a = 0f;
+            _spriteRenderer.color = color;
         }
         private void OnDisable()
         {

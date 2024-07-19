@@ -2,6 +2,7 @@
 using DG.Tweening;
 using UnityEngine;
 using Extensions.DoTween;
+using Extensions.Unity;
 using Extensions.Unity.MonoHelper;
 using Settings;
 using Sirenix.OdinInspector;
@@ -47,18 +48,46 @@ namespace Components.EffectObjects
         {
             TweenContainer.AddTween = _transform.DOMove(toLocation, 1.85f);
             TweenContainer.AddTween = _spriteRenderer.DOFade(1f, 1.85f);
-            
             //TweenContainer.AddTween = _transform.DORotate(new Vector3(0f, 0f, 360f), 1f, RotateMode.WorldAxisAdd);
             
             return TweenContainer.AddedTween;
         }
 
+        public Tween DestroyGun(Vector3 toLocation)
+        {
+            Tween takeBackGunTween = _transform.DOMove(toLocation, 1f);
+            Tween fadeGun = _spriteRenderer.DOFade(0f, 1f);
+            return fadeGun;
+
+        }
+
+        public Tween Whirl()
+        {
+            TweenContainer.AddTween = _transform.DORotate(new Vector3(0f, 0f, 1080f), 0.1f, RotateMode.FastBeyond360);
+            TweenContainer.AddedTween.SetLoops(15);
+            return TweenContainer.AddedTween;
+        }
+        /*public Sequence DestroyGun(Vector3 toLocation)
+        {
+            if (TweenContainer.AddedTween != null)
+            {
+                Debug.Log("still continues...");
+            }
+            Sequence sequence = DOTween.Sequence();
+            sequence.Append(_transform.DOMove(toLocation, 1f));
+            sequence.Append(_spriteRenderer.DOFade(0f, 1f));
+            TweenContainer.AddSequence = sequence;
+            TweenContainer.AddedSeq.onComplete += delegate { _transform.gameObject.Destroy(); };
+            return TweenContainer.AddedSeq;
+        }*/
         [Serializable]
         public class Settings
         {
             [SerializeField] private GameObject _explosionGas;
             public GameObject ExplosionGas => _explosionGas;
         }
+
+        
     }
     
 

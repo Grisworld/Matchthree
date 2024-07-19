@@ -9,7 +9,7 @@ namespace Events
         public UnityAction<Bounds> GridLoaded;
         public UnityAction InputStart;
         public UnityAction InputStop;
-        public UnityAction<int> MatchGroupDespawn;
+        public UnityAction<int, int> MatchGroupDespawn;
         public Func<GameObject, GameObject> InsPrefab;
     }
 }

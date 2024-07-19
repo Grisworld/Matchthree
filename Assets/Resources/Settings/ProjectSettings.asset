@@ -34,3 +34,6 @@ MonoBehaviour:
     _bullet: {fileID: 7084619117482334549, guid: ac75f884283df6b4ead350deeba30523, type: 3}
   _gunSettings:
     _explosionGas: {fileID: 100006, guid: e076683e0305e35498b8e8834978c0fa, type: 3}
+  _soundSettings:
+    _audioClips:
+    - {fileID: 8300000, guid: dc4fa3b4e75bbf24e8e51bc9f17ac22a, type: 3}

@@ -9,7 +9,9 @@ namespace Settings
     {
         [SerializeField] private GridManager.Settings _gridManagerSettings;
         [SerializeField] private Gun.Settings _gunSettings;
+        [SerializeField] private SoundManager.Settings _soundSettings;
         public GridManager.Settings GridManagerSettings => _gridManagerSettings;
         public Gun.Settings GunSettings => _gunSettings;
+        public SoundManager.Settings SoundSettings => _soundSettings;
     }
 }

@@ -76,8 +76,8 @@ namespace Components
                 (
                     new MonoPoolData
                     (
-                        _mySettings.TilePrefabs[prefabId],
-                        prefabId == 4 || prefabId == 5 ? 1 : 10,
+                        _mySettings.TilePrefabs[prefabId], 
+                        10,
                         _transform
                     )
                 );
@@ -296,7 +296,7 @@ namespace Components
             return maxMatch < matches.Count;
         }
 
-        private void SpawnAndAllocateTiles()
+        private Coroutine SpawnAndAllocateTiles()
         {
             _tilesToMove = new Tile[_gridSizeX, _gridSizeY];
             for (int y = 0; y < _gridSizeY; y++)
@@ -350,7 +350,7 @@ namespace Components
                 }
             }
 
-            StartCoroutine(RainDownRoutine());
+            return StartCoroutine(RainDownRoutine());
         }
 
         private Tile SpawnTile(MonoPool randomPool, Vector3 spawnWorldPos, Vector2Int spawnCoords)
@@ -445,7 +445,7 @@ namespace Components
             {
                 IncScoreMulti();
                 matches.DoToAll(DespawnTile);
-                SoundEvents.PlaySound?.Invoke();
+                SoundEvents.PlaySound?.Invoke(0);
                 //TODO: Show score multi text in ui as PunchScale
 
                 GridEvents.MatchGroupDespawn?.Invoke(matches.Count * _scoreMulti, _scoreMulti);
@@ -580,14 +580,18 @@ namespace Components
                     {
                         _hintTween.Complete();
                     }
-
+                    SoundEvents.PlaySound?.Invoke(2);
                     DoTileMoveAnim(_selectedTile, toTile,
                         delegate
                         {
                             _grid.Swap(toTile, _selectedTile);
+                            
 
                             DoTileMoveAnim(_selectedTile, toTile,
-                                delegate { GridEvents.InputStart?.Invoke(); });
+                                delegate
+                                {
+                                    GridEvents.InputStart?.Invoke();
+                                });
                         });
                 }
                 else
@@ -620,16 +624,18 @@ namespace Components
         {
             //ONLY ONE COURUTINE
             _checkMatch = false;
+            ResetScoreMulti();
             for (int x = 0; x < _gridSizeX; x++)
             {
                 for (int y = 0; y < _gridSizeY; y++)
                 {
                     Tile thisTile = _grid[x, y];
-                    int bulletOffSet = 8;
-                    Sequence fireSeq = DOTween.Sequence();
+                    int bulletOffSet = 7;
+                   
                     if (thisTile.ID == EnvVar.TileRightArrow) //RIGHT
                     {
                         Vector3 pos = _grid.CoordsToWorld(_transform, thisTile.Coords);
+                        pos.x += 1f;
                         float bulletLocOffSet = _grid[_gridSizeX - 1, y].ID == EnvVar.TileLeftArrow
                             ? pos.x + bulletOffSet
                             : pos.x + bulletOffSet + 1;
@@ -638,36 +644,51 @@ namespace Components
                         (
                             _mySettings.Gun
                         );
+                        
                         GameObject bulletNew = Instantiate
                         (
                             _mySettings.Bullet
                         );
+                        bulletNew.SetActive(false);
                         bulletNew.transform.position = pos;
                         Vector3 bulletLocPos = new Vector3(bulletLocOffSet, pos.y, pos.z);
+                        
                         //x = +-0.606 for summon and +-0.426 to put
                         pos.y -= 0.22f;
-                        pos.x -= 0.606f;
+                        pos.x -= 1.606f;
                         gunNew.transform.position = pos;
+                        
                         Vector3 tLoc = new Vector3(pos.x + 0.18f, pos.y, pos.z);
                         Gun gun = gunNew.GetComponent<Gun>();
-                        Tween gunSpawnTween = gun.MoveAndSpawn(tLoc);
-                        fireSeq.Append(gunSpawnTween);
-                        fireSeq.Append(gun.Whirl());
                         Bullet bullet = bulletNew.GetComponent<Bullet>();
-                        fireSeq.Append(bullet.GetSprite().DOFade(1f, 1.5f));
+                        
+                        
+                        Sequence fireSeq = DOTween.Sequence();
+                        fireSeq.Append(gun.MoveAndSpawn(tLoc));
+                        fireSeq.Append(gun.Whirl(2.491f,-1.455f,false));
+                        
+                        Tween shakeTween = gun.ShakeGun();
+                        shakeTween.onComplete += delegate { bulletNew.SetActive(true); };
+                        
+                        fireSeq.Append(shakeTween);
                         fireSeq.Append(SendTheBullet(bulletLocPos, bullet));
                         fireSeq.Append(bullet.DestroyBullet());
                         fireSeq.Append(gun.DestroyGun(new Vector3(pos.x - 0.18f, pos.y,pos.z)));
-                        fireSeq.onComplete += SpawnAndAllocateTiles;
-                        yield return new WaitForSeconds(10f);
+                        
+                        yield return fireSeq.WaitForCompletion();
+
+                        yield return SpawnAndAllocateTiles();
                     }
+                    
                     else if (thisTile.ID == EnvVar.TileLeftArrow) //LEFT
                     {
                         Vector3 pos = _grid.CoordsToWorld(_transform, thisTile.Coords);
+                        pos.x -= 1f;
                         float bulletLocOffSet = _grid[0, y].ID == EnvVar.TileRightArrow
                             ? pos.x - bulletOffSet
                             : pos.x - (bulletOffSet + 1);
-
+                        
+                        
                         GameObject gunNew = GridEvents.InsPrefab
                         (
                             _mySettings.Gun
@@ -677,27 +698,37 @@ namespace Components
                         (
                             _mySettings.Bullet
                         );
-
+                        bulletNew.SetActive(false);
                         bulletNew.transform.position = pos;
+                        
                         Vector3 bulletLocPos =
                             new Vector3(bulletLocOffSet, pos.y, pos.z);
                         pos.y -= 0.22f;
-                        pos.x += 0.606f;
+                        pos.x += 1.606f;
                         gunNew.transform.position = pos;
                         Vector3 tLoc = new Vector3(pos.x - 0.18f, pos.y, pos.z);
+                        
                         Gun gun = gunNew.GetComponent<Gun>();
-                        Tween gunSpawnTween = gun.MoveAndSpawn(tLoc);
-                        fireSeq.Append(gunSpawnTween);
-                        fireSeq.Append(gun.Whirl());
-                        gun.GetSprite().flipX = true;
                         Bullet bullet = bulletNew.GetComponent<Bullet>();
-                        fireSeq.Append(bullet.GetSprite().DOFade(1f, 1.5f));
                         bullet.GetSprite().flipX = true;
+                        gun.GetSprite().flipX = true;
+                        
+                        Sequence fireSeq = DOTween.Sequence();
+                        fireSeq.Append(gun.MoveAndSpawn(tLoc));
+                        fireSeq.Append(gun.Whirl(-2.491f,-1.455f,true));
+                        
+                        Tween shakeTween = gun.ShakeGun();
+                        shakeTween.onComplete += delegate { bulletNew.SetActive(true); };
+                        
+                        fireSeq.Append(shakeTween);
                         fireSeq.Append(SendTheBullet(bulletLocPos, bullet));
                         fireSeq.Append(bullet.DestroyBullet());
                         fireSeq.Append(gun.DestroyGun(new Vector3(pos.x + 0.18f, pos.y,pos.z)));
-                        fireSeq.onComplete += SpawnAndAllocateTiles;
-                        yield return new WaitForSeconds(10f);
+                        
+                        yield return fireSeq.WaitForCompletion();
+
+                        yield return SpawnAndAllocateTiles();
+                        
                     }
                 }
             }
@@ -717,17 +748,19 @@ namespace Components
         private Tween SendTheBullet(Vector3 bulletLocPos, Bullet bullet)
         {
             
-            Tween bulletPosTw = bullet.GetTransform().DOMove(bulletLocPos, 1.85f);
+            Tween bulletPosTw = bullet.GetTransform().DOMove(bulletLocPos, 1.5f);
             Tile lastTile = null;
             bulletPosTw.onUpdate += delegate
             {
                 Vector3 currPosOfBullet = bullet.GetTransform().position;
-                Tile shottedTile = _grid[(int)currPosOfBullet.x, (int)currPosOfBullet.y];
+                Tile shottedTile = _grid[(int)Math.Round(currPosOfBullet.x), (int)Math.Round(currPosOfBullet.y)];
+                Debug.Log("x and y of shottedTile "+ shottedTile.Coords);
                 if (shottedTile != null && !GridF.ControlImmovableIds(shottedTile))
                 {
-                    if (_grid.CoordsToWorld(_transform, shottedTile.Coords).x - currPosOfBullet.x < 0.550001f)
+                    if (Math.Abs(_grid.CoordsToWorld(_transform, shottedTile.Coords).x - currPosOfBullet.x) < 0.550001f)
                     {
                         GridEvents.MatchGroupDespawn?.Invoke(1,_scoreMulti);
+                        
                         DespawnTile(shottedTile);
                     }
                 }
@@ -745,10 +778,7 @@ namespace Components
             return bulletPosTw;
         }
 
-        private bool Tryings()
-        {
-            return true;
-        }
+        
 
 
         private void UnRegisterEvents()

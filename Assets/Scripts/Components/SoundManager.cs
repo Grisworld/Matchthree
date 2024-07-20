@@ -1,5 +1,6 @@
 ﻿using System;
 using System.Collections.Generic;
+using DG.Tweening;
 using Events;
 using Extensions.Unity.MonoHelper;
 using Settings;
@@ -21,9 +22,9 @@ namespace Components
             _mySoundSettings = ProjectSettings.SoundSettings;
         }
 
-        private void OnPlaySound()
+        private void OnPlaySound(int index)
         {
-            _audioSource.clip = _mySoundSettings.AudioClips[0];
+            _audioSource.clip = _mySoundSettings.AudioClips[index];
             _audioSource.Play();
         }
 

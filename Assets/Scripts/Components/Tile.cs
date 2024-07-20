@@ -8,6 +8,7 @@ namespace Components
 {
     public class Tile : MonoBehaviour, ITileGrid, IPoolObj, ITweenContainerBind
     {
+        
         public Vector2Int Coords => _coords;
         public int ID => _id;
         [SerializeField] private Vector2Int _coords;

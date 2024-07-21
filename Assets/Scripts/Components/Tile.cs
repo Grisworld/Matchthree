@@ -8,13 +8,13 @@ namespace Components
 {
     public class Tile : MonoBehaviour, ITileGrid, IPoolObj, ITweenContainerBind
     {
-        
         public Vector2Int Coords => _coords;
         public int ID => _id;
         [SerializeField] private Vector2Int _coords;
         [SerializeField] private int _id;
         [SerializeField] private SpriteRenderer _spriteRenderer;
         [SerializeField] private Transform _transform;
+        public bool DidSpawnGun { get; set; }
         public MonoPool MyPool{get;set;}
         public ITweenContainer TweenContainer{get;set;}
         public bool ToBeDestroyed{get;set;}

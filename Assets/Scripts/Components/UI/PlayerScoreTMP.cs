@@ -57,11 +57,18 @@ namespace Components.UI
                 //counterTween.onComplete += delegate
                 //{
                 _multTMP.enabled = true;
-                _multTMP.text = $"Mult: {mult}";
+                _multTMP.text = $"X{mult}";
                 //};
                 
                 _multTween = _multRectTrans.DOPunchScale(Vector3.one * 1.3f, 1.5f);
-                SoundEvents.PlaySound?.Invoke(3);
+                if(mult == 2)
+                    SoundEvents.Play?.Invoke(3,1.0f,false,128);
+                else if(mult == 3)
+                    SoundEvents.Play?.Invoke(3,1.20f,false,128);
+                else if(mult == 4)
+                    SoundEvents.Play?.Invoke(3,1.40f,false,128);
+                else
+                    SoundEvents.Play?.Invoke(3,1.6f,false,128);
             }
 
             _counterTween.onComplete += delegate

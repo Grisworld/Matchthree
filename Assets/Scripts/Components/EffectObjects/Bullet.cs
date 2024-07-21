@@ -32,7 +32,7 @@ namespace Components.EffectObjects
         
         public Tween DestroyBullet()
         {
-            TweenContainer.AddTween = _spriteRenderer.DOFade(0f, 1.85f);
+            TweenContainer.AddTween = _spriteRenderer.DOFade(0f, 1f);
             TweenContainer.AddedTween.onComplete += delegate { _transform.gameObject.Destroy(); };
             return TweenContainer.AddedTween;
         }

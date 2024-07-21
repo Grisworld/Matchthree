@@ -20,7 +20,10 @@ namespace Components.EffectObjects
         [Inject] private SoundEvents SoundEvents { get; set; }
         [SerializeField] private SpriteRenderer _spriteRenderer;
         [SerializeField] private Transform _transform;
+        
         private Settings _myGunSettings;
+        private GameObject _lastGas;
+
         private void Awake()
         {
             if (ProjectSettings == null)
@@ -41,7 +44,20 @@ namespace Components.EffectObjects
             TweenContainer.Clear();
         }
 
-       
+        private bool SummonExplosion(float xOffSet, float yOffSet, bool flip)
+        {
+            var position = _transform.position;
+            _lastGas = Instantiate(
+                flip ? _myGunSettings.ExplosionGasRotatedZ : _myGunSettings.ExplosionGas,
+                new Vector3(position.x + xOffSet,position.y + yOffSet ,0f),
+                Quaternion.identity
+            );
+            SoundEvents.Play?.Invoke(1,0.65f,false,128);
+            return false;
+        }
+
+        
+
 
         public SpriteRenderer GetSprite()
         {
@@ -66,60 +82,79 @@ namespace Components.EffectObjects
 
         public Sequence DestroyGun(Vector3 toLocation)
         {
+
             Sequence sequence = DOTween.Sequence();
+
+            sequence.onPlay += delegate
+            {         
+                SoundEvents.Play?.Invoke(5,1.0f,false,128);
+            };
             
             Tween takeBackGunTween = _transform.DOMove(toLocation, 1f);
-            Tween fadeGun = _spriteRenderer.DOFade(0f, 1f);
+            Tween whiteFadeOut = _spriteRenderer.DOColor(new Color(1f,1f,1f,0f), 0.75f);
 
             sequence.Append(takeBackGunTween);
-            sequence.Join(fadeGun);
+            sequence.Join(whiteFadeOut);
             
             TweenContainer.AddSequence = sequence;
             TweenContainer.AddedSeq.onComplete += delegate
             {
                 _transform.gameObject.Destroy();
-                _myGunSettings.ExplosionGas.transform.gameObject.Destroy();
-                _myGunSettings.ExplosionGasRotatedZ.transform.gameObject.Destroy();
+                if (_lastGas != null)
+                {
+                    _lastGas.Destroy();
+                }
             };
             return TweenContainer.AddedSeq;
 
         }
 
-        public Tween Whirl(float xOffSet,float yOffSet,bool flip)
+        public Tween Whirl()
         {
+            
             TweenContainer.AddTween = _transform.DORotate(new Vector3(0f, 0f, 1080f), 0.1f, RotateMode.FastBeyond360);
             TweenContainer.AddedTween.SetLoops(15);
-            TweenContainer.AddedTween.onComplete += delegate
-            {
-                GameObject gas = Instantiate(
-                    flip ? _myGunSettings.ExplosionGasRotatedZ : _myGunSettings.ExplosionGas,
-                    new Vector3(_transform.position.x + xOffSet,_transform.position.y + yOffSet ,0f),
-                    Quaternion.identity
-                    );
-                SoundEvents.PlaySound?.Invoke(1);
+            
+            TweenContainer.AddedTween.onPlay += delegate
+            {         
+                SoundEvents.Play?.Invoke(4,1.0f,true,128);
             };
+            
+            TweenContainer.AddedTween.onComplete += delegate
+            {         
+                SoundEvents.Stop?.Invoke();
+            };
+            
+            
             return TweenContainer.AddedTween;
         }
 
-        public Tween ShakeGun()
+        public Sequence ShakeGun(float xOffSet,float yOffSet,bool flip)
         {
-            TweenContainer.AddTween = _transform.DOShakeScale(1f);
-
-            return TweenContainer.AddedTween;
-        }
-        /*public Sequence DestroyGun(Vector3 toLocation)
-        {
-            if (TweenContainer.AddedTween != null)
+            Sequence shakeSeq = DOTween.Sequence();
+            
+            shakeSeq.onPlay += delegate
+            {                 
+                SoundEvents.Play?.Invoke(6,0.35f,false,100);
+    
+            };
+            
+            Tween shakeTween = _transform.DOShakeScale(0.75f,1f,100);
+            Tween redColorTween = _spriteRenderer.DOColor(Color.red, 0.75f);
+            
+            shakeSeq.Append(shakeTween);
+            shakeSeq.Join(redColorTween);
+            
+            TweenContainer.AddSequence = shakeSeq;
+            TweenContainer.AddedSeq.onComplete += delegate
             {
-                Debug.Log("still continues...");
-            }
-            Sequence sequence = DOTween.Sequence();
-            sequence.Append(_transform.DOMove(toLocation, 1f));
-            sequence.Append(_spriteRenderer.DOFade(0f, 1f));
-            TweenContainer.AddSequence = sequence;
-            TweenContainer.AddedSeq.onComplete += delegate { _transform.gameObject.Destroy(); };
+                SummonExplosion(xOffSet, yOffSet, flip);
+            };
+            
+            
             return TweenContainer.AddedSeq;
-        }*/
+        }
+        
         [Serializable]
         public class Settings
         {

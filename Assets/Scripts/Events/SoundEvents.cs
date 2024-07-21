@@ -4,6 +4,7 @@ namespace Events
 {
     public class SoundEvents
     {
-        public UnityAction<int> PlaySound;
+        public UnityAction<int, float, bool, int> Play;
+        public UnityAction Stop;
     }
 }

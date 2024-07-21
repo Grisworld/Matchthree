@@ -224,7 +224,7 @@ public static class GridF
         {
             Tile currTile = grid[x, coord.y];
 
-            if(currTile.ID == prefabId)
+            if(currTile?.ID == prefabId)
             {
                 matches.Add(currTile);
             }
@@ -259,7 +259,7 @@ public static class GridF
         {
             Tile currTile = grid[coord.x, y];
 
-            if(currTile.ID == prefabId)
+            if(currTile?.ID == prefabId)
             {
                 matches.Add(currTile);
             }

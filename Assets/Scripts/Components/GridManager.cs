@@ -125,6 +125,7 @@ namespace Components
             matches = new List<List<Tile>>();
             foreach (Tile tile in _grid)
             {
+                if (GridF.ControlImmovableIds(tile)) continue;
                 var matchesAll = _grid.GetMatchesXAll(tile);
                 matchesAll.AddRange(_grid.GetMatchesYAll(tile));
 
@@ -138,9 +139,13 @@ namespace Components
                 var match = matches[i];
                 matches[i] = match.Where(e => e.ToBeDestroyed == false).DoToAll(e => e.ToBeDestroyed = true).ToList();
             }
+            
+            List<List<Tile>> makeRestfalse =  matches.Where(e => e.Count <= 2).ToList();
+            //makeRestfalse.Where(e => e.Count <= 2).DoToAll(e => e.DoToAll(x => x.ToBeDestroyed = false));
 
+            makeRestfalse.DoToAll(e => e.DoToAll(x => x.ToBeDestroyed = false));
+            
             matches = matches.Where(e => e.Count > 2).ToList();
-
             return matches.Count > 0;
         }
         private bool HasAnyMatches()
@@ -148,6 +153,7 @@ namespace Components
             List<List<Tile>> matches = new List<List<Tile>>();
             foreach (Tile tile in _grid)
             {
+                if (GridF.ControlImmovableIds(tile)) continue;
                 var matchesAll = _grid.GetMatchesXAll(tile);
                 matchesAll.AddRange(_grid.GetMatchesYAll(tile));
 
@@ -456,6 +462,10 @@ namespace Components
 
             _grid.Set(null, e.Coords);
             _tilePoolsByPrefabID[e.ID].DeSpawn(e);
+            if (_tilePoolsByPrefabID[e.ID].ActiveCount <= 0)
+            {
+                Debug.Log("Is that even possible?");
+            }
         }
 
         private void DoTileMoveAnim(Tile fromTile, Tile toTile, TweenCallback onComplete = null)
@@ -509,9 +519,19 @@ namespace Components
         private void OnMouseUpGrid(Vector3 mouseUpPos)
         {
             _mouseUpPos = mouseUpPos;
-
+            foreach(Tile tile in _grid)
+            {
+                if (tile.ToBeDestroyed)
+                {
+                    bool xmatch = _grid.GetMatchesX(tile).Count == 0;
+                    bool ymatch = _grid.GetMatchesY(tile).Count == 0;
+                    Debug.Log("bug available? " + tile.Coords + "  X found? " + xmatch + " Y found? "+ ymatch);
+                }
+                
+            }
             Vector3 dirVector = mouseUpPos - _mouseDownPos;
             if (dirVector.magnitude < Mousethreshold) return;
+            
             if (_selectedTile)
             {
                 if (GridF.ControlImmovableIds(_selectedTile)) return;

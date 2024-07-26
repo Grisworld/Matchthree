@@ -57,6 +57,7 @@ namespace Components
         {
             ToBeDestroyed = false;
             //RESET METHOD (Resurrect)
+            
         }
 
         public void Teleport(Vector3 worldPos)

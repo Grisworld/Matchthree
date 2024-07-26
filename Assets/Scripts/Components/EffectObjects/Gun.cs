@@ -125,7 +125,6 @@ namespace Components.EffectObjects
                 SoundEvents.Stop?.Invoke();
             };
             
-            
             return TweenContainer.AddedTween;
         }
 

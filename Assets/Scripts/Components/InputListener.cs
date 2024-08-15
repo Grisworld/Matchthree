@@ -10,6 +10,8 @@ namespace Components
     public class InputListener : EventListenerMono
     {
         private const float ZoomDeltaThreshold = 0.01f;
+        private const float TouchToZoomMulti= 0.1f;
+
         [Inject] private InputEvents InputEvents{get;set;}
         [Inject] private Camera Camera{get;set;}
         [Inject] private GridEvents GridEvents{get;set;}
@@ -49,8 +51,9 @@ namespace Components
                 Touch touch1 = Input.GetTouch(0);
 
                 Touch touch2 = Input.GetTouch(1);
+                
 
-                float currDist = (touch1.position - touch2.position).magnitude;
+                float currDist = (touch1.position - touch2.position).magnitude * TouchToZoomMulti;
 
                 if(_lastTouchCount < 2)
                 {

@@ -11,5 +11,6 @@ namespace Events
         public UnityAction InputStop;
         public UnityAction<int, int> MatchGroupDespawn;
         public Func<GameObject, GameObject> InsPrefab;
+        public UnityAction PlayerMoved;
     }
 }

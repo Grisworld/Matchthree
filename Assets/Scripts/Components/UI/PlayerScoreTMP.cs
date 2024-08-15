@@ -42,6 +42,7 @@ namespace Components.UI
             if (_counterTween.IsActive()) _counterTween.Kill();
             if (_multTween.IsActive()) _multTween.Kill();
             _multRectTrans.localScale = Vector3.one;
+            
             _counterTween = DOVirtual.Int
             (
                 _currCounterVal,
@@ -49,7 +50,8 @@ namespace Components.UI
                 1f,
                 OnCounterUpdate
             );
-            
+
+            TweenContainer.AddTween = _counterTween;
             
             
             if (mult > 1)
@@ -61,6 +63,8 @@ namespace Components.UI
                 //};
                 
                 _multTween = _multRectTrans.DOPunchScale(Vector3.one * 1.3f, 1.5f);
+                TweenContainer.AddTween = _multTween;
+                
                 if(mult == 2)
                     SoundEvents.Play?.Invoke(3,1.0f,false,128);
                 else if(mult == 3)
@@ -88,6 +92,8 @@ namespace Components.UI
         protected override void UnRegisterEvents()
         {
             GridEvents.MatchGroupDespawn -= OnMatchGroupDespawn;
+            TweenContainer.Clear();
         }
+        
     }
 }

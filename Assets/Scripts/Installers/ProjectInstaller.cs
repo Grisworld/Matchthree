@@ -1,8 +1,9 @@
 using Events;
-using UnityEngine.SceneManagement;
-using Zenject;
 using Settings;
 using UnityEngine;
+using UnityEngine.SceneManagement;
+using ViewModels;
+using Zenject;
 
 namespace Installers
 {
@@ -11,13 +12,14 @@ namespace Installers
         private ProjectEvents _projectEvents;
         private InputEvents _inputEvents;
         private GridEvents _gridEvents;
-        private SoundEvents _soundEvents;
         private ProjectSettings _projectSettings;
+        private SoundEvents _soundEvents;
 
         public override void InstallBindings()
         {
             InstallEvents();
             InstallSettings();
+            InstallData();
         }
 
         private void InstallEvents()
@@ -30,7 +32,7 @@ namespace Installers
 
             _gridEvents = new GridEvents();
             Container.BindInstance(_gridEvents).AsSingle();
-
+            
             _soundEvents = new SoundEvents();
             Container.BindInstance(_soundEvents).AsSingle();
         }
@@ -41,36 +43,39 @@ namespace Installers
             Container.BindInstance(_projectSettings).AsSingle();
         }
 
-        private void Awake()
+        private void InstallData()
         {
-            RegisterEvents();
+            Container.BindInterfacesAndSelfTo<PlayerVM>().AsSingle();
         }
+
+        private void Awake() {RegisterEvents();}
 
         public override void Start()
         {
             _projectEvents.ProjectStarted?.Invoke();
-            if (SceneManager.GetActiveScene().name == EnvVar.LoginSceneName)
+
+            if(SceneManager.GetActiveScene().name == EnvVar.LoginSceneName)
             {
                 LoadScene(EnvVar.MainSceneName);
             }
         }
 
-        private static void LoadScene(string sceneName)
-        {
-            SceneManager.LoadScene(sceneName);
-        }
+        private static void LoadScene(string sceneName) {SceneManager.LoadScene(sceneName);}
 
         private void RegisterEvents()
         {
             SceneManager.sceneLoaded += OnSceneLoaded;
+            _projectEvents.LevelComplete += OnLevelComplete;
+        }
+
+        private void OnLevelComplete()
+        {
+            LoadScene(EnvVar.MainSceneName);
         }
 
         private void OnSceneLoaded(Scene loadedScene, LoadSceneMode arg1)
         {
-            /*if(loadedScene.name == EnvVar.LoginSceneName)
-            {
-                LoadScene(EnvVar.MainSceneName);
-            }*/
+            //if(loadedScene.name == EnvVar.LoginSceneName) LoadScene(EnvVar.MainSceneName);
         }
     }
 }

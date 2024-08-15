@@ -3,6 +3,7 @@ using System.Collections;
 using System.Collections.Generic;
 using System.Linq;
 using System.Reflection;
+using System.Runtime.CompilerServices;
 using Components.EffectObjects;
 using DG.Tweening;
 using Events;
@@ -365,6 +366,9 @@ namespace Components
                     if (thisTile == false) continue;
 
                     Tween thisTween = thisTile.DoMove(_grid.CoordsToWorld(_transform, thisTile.Coords));
+
+                    TweenContainer.AddTween = thisTween;
+                    
                     thisTween.onComplete += delegate
                     {
                         SoundEvents.Play?.Invoke(7, 1.0f, false, 128);
@@ -486,6 +490,8 @@ namespace Components
                 Vector3 moveCoords = _grid.CoordsToWorld(_transform, _hintTile.Coords + gridMoveDir) - gridMoveEase;
 
                 _hintTween = _hintTile.DoHint(moveCoords);
+
+                TweenContainer.AddTween = _hintTween;
             }
         }
 
@@ -605,6 +611,7 @@ namespace Components
                 }
             }
             
+            GridEvents.PlayerMoved?.Invoke();
             IsGameOver(out _hintTile, out _hintDir);
             GridEvents.InputStart?.Invoke();
         }
@@ -614,7 +621,7 @@ namespace Components
             //ONLY ONE COURUTINE
             ResetScoreMulti();
             
-            var bulletOffSet = 7;
+            var bulletOffSet = _gridSizeY - 3;
             Vector3 pos = default;
             Vector3 bulletLocPos = default;
             if (gunTile.ID == EnvVar.TileRightArrow) //RIGHT
@@ -637,13 +644,11 @@ namespace Components
                     new Vector3(bulletLocOffSet, pos.y, pos.z);
                 
             }
-
-            Sequence fireSeq = GunInstantiate(gunTile, pos, bulletLocPos, gunTile.ID);
-
-            yield return fireSeq.WaitForCompletion();
+            
+            yield return GunInstantiate(gunTile, pos, bulletLocPos, gunTile.ID);
         }
 
-        private Sequence GunInstantiate(Tile gunTile, Vector3 pos, Vector3 bulletLocPos, int id)
+        private YieldInstruction GunInstantiate(Tile gunTile, Vector3 pos, Vector3 bulletLocPos, int id)
         {
             gunTile.DidSpawnGun = true;
 
@@ -691,7 +696,10 @@ namespace Components
             fireSeq.Append(SendTheBullet(bulletLocPos, bullet));
             fireSeq.Append(bullet.DestroyBullet());
             fireSeq.Append(gun.DestroyGun(new Vector3(id == EnvVar.TileLeftArrow ? pos.x + 0.18f : pos.x - 0.18f, pos.y, pos.z)));
-            return fireSeq;
+
+            TweenContainer.AddSequence = fireSeq;
+            
+            return fireSeq.WaitForCompletion();;
         }
 
         //After 0.7 difference Rain that Column

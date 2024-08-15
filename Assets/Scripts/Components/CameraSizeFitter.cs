@@ -1,4 +1,5 @@
-﻿using Events;
+﻿using System;
+using Events;
 using Extensions.Unity.MonoHelper;
 using UnityEngine;
 using Zenject;
@@ -12,6 +13,8 @@ namespace Components
         [SerializeField] private Camera _camera;
         [SerializeField] private Transform _transform;
 
+        
+
         protected override void RegisterEvents()
         {
             GridEvents.GridLoaded += OnGridLoaded;
@@ -20,7 +23,10 @@ namespace Components
 
         private void OnZoomDelta(float arg0)
         {
-            _camera.orthographicSize += arg0;
+            var orthographicSize = _camera.orthographicSize;
+            orthographicSize += arg0;
+            
+            _camera.orthographicSize = Mathf.Clamp(orthographicSize, 2f, 10f);
         }
 
         private void OnGridLoaded(Bounds gridBounds)

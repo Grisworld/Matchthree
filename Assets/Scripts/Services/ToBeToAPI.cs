@@ -1,5 +1,8 @@
-﻿using Extensions.System;
+﻿using System;
+using Extensions.System;
+using TreeEditor;
 using UnityEngine;
+using Random = UnityEngine.Random;
 
 namespace Services
 {
@@ -17,6 +20,9 @@ namespace Services
 
             float randomABGroup = Random.value;
 
+            //DateTime.Now.Millisecond
+            
+            
             bool ab = randomABGroup > ABGroupChance;
 
             _currentGroup = ab;
@@ -38,6 +44,11 @@ namespace Services
         public int GetGroup()
         {
             return _currentGroup.ToInt();
+        }
+        
+        public void ForceSetGroup(bool group)
+        {
+            PlayerPrefs.SetInt(ABTestPrefKey, group.ToInt());
         }
     }
 }

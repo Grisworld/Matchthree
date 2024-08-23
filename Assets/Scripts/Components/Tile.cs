@@ -1,4 +1,5 @@
 ﻿using System;
+using System.Collections.Generic;
 using DG.Tweening;
 using Extensions.DoTween;
 using Extensions.Unity;
@@ -10,6 +11,10 @@ namespace Components
     {
         public Vector2Int Coords => _coords;
         public int ID => _id;
+
+        public List<Vector2Int> TweenCoords => _tweenCoords;
+        private List<Vector2Int> _tweenCoords;
+        
         [SerializeField] private Vector2Int _coords;
         [SerializeField] private int _id;
         [SerializeField] private SpriteRenderer _spriteRenderer;
@@ -26,6 +31,8 @@ namespace Components
         private void Awake()
         {
             TweenContainer = TweenContain.Install(this);
+            _tweenCoords = new List<Vector2Int>();
+
         }
 
         private void OnDisable()
@@ -33,7 +40,6 @@ namespace Components
             TweenContainer.Clear();
         }
 
-        private void OnMouseDown() {}
 
         void ITileGrid.SetCoord(Vector2Int coord)
         {
@@ -91,6 +97,16 @@ namespace Components
                 _spriteRenderer.sortingOrder = EnvVar.TileSpriteLayer;
             };
             return TweenContainer.AddedSeq;
+        }
+
+        public void AddCoord(Vector2Int coord)
+        {
+            _tweenCoords.Add(coord);
+        }
+
+        public void SetCoordsFree()
+        {
+            _tweenCoords = new List<Vector2Int>();
         }
     }
 

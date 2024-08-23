@@ -25,6 +25,9 @@ namespace Components
         {
             if(Input.GetMouseButtonDown(0))
             {
+                //TODO: 
+                InputEvents.MousePosition?.Invoke(Input.mousePosition);
+                
                 Ray inputRay = Camera.ScreenPointToRay(Input.mousePosition);
                 RaycastHit[] hits = Physics.RaycastAll(inputRay, 100f);
 

@@ -49,6 +49,8 @@ namespace Components
         private Vector3 _mouseDownPos;
         private Vector3 _mouseUpPos;
         private List<MonoPool> _tilePoolsByPrefabID;
+        private List<List<Tile>>[] _movementSequences;
+        
         private MonoPool _tilePool0;
         private MonoPool _tilePool1;
         private MonoPool _tilePool2;
@@ -99,7 +101,7 @@ namespace Components
                 SpawnTile(tile.ID, _grid.CoordsToWorld(_transform, tile.Coords), tile.Coords);
                 tile.gameObject.Destroy();
             }
-
+            
             IsGameOver(out _hintTile, out _hintDir);
             GridEvents.GridLoaded?.Invoke(_gridBounds);
             GridEvents.InputStart?.Invoke();
@@ -140,15 +142,16 @@ namespace Components
                 var match = matches[i];
                 matches[i] = match.Where(e => e.ToBeDestroyed == false).DoToAll(e => e.ToBeDestroyed = true).ToList();
             }
-            
-            List<List<Tile>> makeRestfalse =  matches.Where(e => e.Count <= 2).ToList();
+
+            List<List<Tile>> makeRestfalse = matches.Where(e => e.Count <= 2).ToList();
             //makeRestfalse.Where(e => e.Count <= 2).DoToAll(e => e.DoToAll(x => x.ToBeDestroyed = false));
 
             makeRestfalse.DoToAll(e => e.DoToAll(x => x.ToBeDestroyed = false));
-            
+
             matches = matches.Where(e => e.Count > 2).ToList();
             return matches.Count > 0;
         }
+
         private bool HasAnyMatches()
         {
             List<List<Tile>> matches = new List<List<Tile>>();
@@ -165,6 +168,7 @@ namespace Components
 
             return matches.Count > 0;
         }
+
         private bool IsGameOver(out Tile hintTile, out GridDir hintDir)
         {
             hintDir = GridDir.Null;
@@ -332,6 +336,190 @@ namespace Components
             }
         }
 
+        private void SpawnAndAllocateTilesForNow()
+        {
+            _tilesToMove = new Tile[_gridSizeX, _gridSizeY];
+            _movementSequences = new List<List<Tile>>[_gridSizeX];
+            bool allFilled;
+
+            do
+            {
+                allFilled = true;
+
+                for (int y = 0; y < _gridSizeY; y++)
+                {
+                    for (int x = 0; x < _gridSizeX; x++)
+                    {
+                        Vector2Int thisCoord = new(x, y);
+                        Tile thisTile = _grid.Get(thisCoord);
+
+                        if (thisTile) continue;
+
+                        allFilled = false;
+
+                        if (TryFillFromAbove(thisCoord, true)) continue;
+
+                        TryFillFromDiagonal(thisCoord);
+                        continue;
+
+                        // If we reach here, we couldn't fill the tile from above or diagonally
+                        // We'll spawn a new tile in the next iteration
+                    }
+                }
+
+                // Spawn new tiles for any remaining empty spaces
+                for (int x = 0; x < _gridSizeX; x++)
+                {
+                    for (int y = _gridSizeY - 1; y >= 0; y--)
+                    {
+                        Vector2Int thisCoord = new(x, y);
+
+                        if (TryFillFromAbove(thisCoord, false)) continue;
+
+                        if (_grid.Get(thisCoord) == null)
+                        {
+                            MonoPool randomPool = _tilePoolsByPrefabID.Random(0, 4);
+                            Tile newTile = SpawnTile(
+                                randomPool,
+                                _grid.CoordsToWorld(_transform, new Vector2Int(x, _gridSizeY)),
+                                thisCoord
+                            );
+                            _tilesToMove[thisCoord.x, thisCoord.y] = newTile;
+                            
+                            newTile.AddCoord(new Vector2Int(thisCoord.x,thisCoord.y));
+                        }
+                    }
+                }
+            } while (!allFilled);
+        }
+
+
+        private bool TryFillFromAbove(Vector2Int coord, bool fill)
+        {
+            for (int y1 = coord.y + 1; y1 < _gridSizeY; y1++)
+            {
+                Vector2Int aboveCoords = new(coord.x, y1);
+                Tile aboveTile = _grid.Get(aboveCoords);
+
+                if (aboveTile != null)
+                {
+                    if (aboveTile.ID == EnvVar.TileRightArrow || aboveTile.ID == EnvVar.TileLeftArrow) return false;
+                    if (fill)
+                    {
+                        _grid.Set(null, aboveTile.Coords);
+                        _grid.Set(aboveTile, coord);
+                        _tilesToMove[coord.x, coord.y] = aboveTile;
+                        return true;
+                    }
+                }
+            }
+
+            return false;
+        }
+
+        private void TryFillFromDiagonal(Vector2Int coord)
+        {
+            Vector2Int carriedCoord = new Vector2Int();
+            int spawnTilePosX = 0;
+            int difference = 1;
+            
+            for (int y1 = coord.y; y1 < _gridSizeY; y1++)
+            {
+                Vector2Int tempCoord = new Vector2Int(coord.x, y1);
+                carriedCoord = new Vector2Int(tempCoord.x, tempCoord.y);
+
+                Tile tempTile = _grid.IsInsideGrid(tempCoord) ? _grid.Get(tempCoord) : null;
+
+
+                if (tempTile != null && (tempTile.ID == EnvVar.TileRightArrow || tempTile.ID == EnvVar.TileLeftArrow))
+                {
+                    if (tempTile.ID == EnvVar.TileRightArrow)
+                        spawnTilePosX = coord.x + 1;
+                    else
+                        spawnTilePosX = coord.x - 1;
+                    
+                    difference = y1 - coord.y;
+                    
+                    break;
+                }
+            }
+
+            carriedCoord.y--;
+
+            if (spawnTilePosX != 0)
+            {
+                for (int offset = 1; offset < _gridSizeY; offset++)
+                {
+                    if (TryGetDiagonalTile(carriedCoord, offset, out Tile diagonalTile, spawnTilePosX))
+                    {
+                        _grid.Set(null, diagonalTile.Coords);
+                        _grid.Set(diagonalTile, coord);
+                        _tilesToMove[coord.x, coord.y] = diagonalTile;
+                        
+                        diagonalTile.AddCoord(new Vector2Int(coord.x,coord.y));
+                        
+                        if (difference > 1)
+                        {
+                            diagonalTile.AddCoord(new Vector2Int(carriedCoord.x,carriedCoord.y));
+                        }
+                        
+                        return;
+                    }
+                }
+
+
+                Debug.Log("loc of carriedCord " + spawnTilePosX);
+                //WE REACHED TOP AND STILL NOTHING FOUND 
+                MonoPool randomPool = _tilePoolsByPrefabID.Random(0, 4);
+
+                Tile newTile = SpawnTile(
+                    randomPool,
+                    _grid.CoordsToWorld(_transform, new Vector2Int(spawnTilePosX, _gridSizeY)),
+                    coord
+                );
+                _tilesToMove[coord.x, coord.y] = newTile;
+                
+                newTile.AddCoord(new Vector2Int(coord.x,coord.y));
+                newTile.AddCoord(new Vector2Int(carriedCoord.x, carriedCoord.y));
+                newTile.AddCoord(new Vector2Int(spawnTilePosX,carriedCoord.y + 1));
+            }
+        }
+
+        private bool TryGetDiagonalTile(Vector2Int coord, int offset, out Tile diagonalTile, int spawnTilePosX)
+        {
+            diagonalTile = null;
+
+            Vector2Int diagonalCoord = new Vector2Int(spawnTilePosX, coord.y + offset);
+            /*Vector2Int[] diagonalCoords = new[]
+            {
+                new Vector2Int(coord.x - 1, coord.y + offset),
+                new Vector2Int(coord.x + 1, coord.y + offset)
+            };
+
+
+            Vector2Int topCoordinate = new Vector2Int(coord.x, coord.y + 1);
+
+            if (_grid.IsInsideGrid(topCoordinate) == false) return false;
+
+            Tile topTile = _grid.Get(topCoordinate);
+
+            if (topTile == null) return false;*/
+
+            if (_grid.IsInsideGrid(diagonalCoord))
+            {
+                Tile tile = _grid.Get(diagonalCoord);
+                if (tile != null)
+                {
+                    diagonalTile = tile;
+                    return true;
+                }
+            }
+
+
+            return false;
+        }
+
+        //
         private Tile SpawnTile(MonoPool randomPool, Vector3 spawnWorldPos, Vector2Int spawnCoords)
         {
             var newTile = randomPool.Request<Tile>();
@@ -350,6 +538,7 @@ namespace Components
             return SpawnTile(_tilePoolsByPrefabID[id], worldPos, coords);
         }
 
+       
         private IEnumerator RainDownRoutine()
         {
             var longestDistY = 0;
@@ -368,11 +557,8 @@ namespace Components
                     Tween thisTween = thisTile.DoMove(_grid.CoordsToWorld(_transform, thisTile.Coords));
 
                     TweenContainer.AddTween = thisTween;
-                    
-                    thisTween.onComplete += delegate
-                    {
-                        SoundEvents.Play?.Invoke(7, 1.0f, false, 128);
-                    };
+
+                    thisTween.onComplete += delegate { SoundEvents.Play?.Invoke(7, 1.0f, false, 128); };
                     shouldWait = true;
 
                     if (longestDistY < y)
@@ -388,7 +574,6 @@ namespace Components
             if (longestTween != null)
             {
                 yield return longestTween.WaitForCompletion();
-                
             }
             else
             {
@@ -525,19 +710,19 @@ namespace Components
         private void OnMouseUpGrid(Vector3 mouseUpPos)
         {
             _mouseUpPos = mouseUpPos;
-            foreach(Tile tile in _grid)
+            foreach (Tile tile in _grid)
             {
                 if (tile.ToBeDestroyed)
                 {
                     bool xmatch = _grid.GetMatchesX(tile).Count == 0;
                     bool ymatch = _grid.GetMatchesY(tile).Count == 0;
-                    Debug.Log("bug available? " + tile.Coords + "  X found? " + xmatch + " Y found? "+ ymatch);
+                    Debug.Log("bug available? " + tile.Coords + "  X found? " + xmatch + " Y found? " + ymatch);
                 }
-                
             }
+
             Vector3 dirVector = mouseUpPos - _mouseDownPos;
             if (dirVector.magnitude < Mousethreshold) return;
-            
+
             if (_selectedTile)
             {
                 if (GridF.ControlImmovableIds(_selectedTile)) return;
@@ -568,59 +753,54 @@ namespace Components
                 {
                     GridEvents.InputStop?.Invoke();
                     if (_hintTween.IsActive()) _hintTween.Complete();
-                    
+
                     _matchCounter++;
                     if (_matchCounter % 3 == 0) _canSpawnGuns = true;
-                    
+
                     DoTileMoveAnim
                     (
                         _selectedTile,
                         toTile,
-                        delegate
-                        {
-                            StartCoroutine(GridCheckRoutine());
-                        }
+                        delegate { StartCoroutine(GridCheckRoutine()); }
                     );
                 }
             }
         }
-        
+
         private IEnumerator GridCheckRoutine()
         {
             while (HasAnyMatchesToDestroy(out _lastMatches))
             {
                 yield return StartCoroutine(DestroyRoutine(_lastMatches));
-                
-                SpawnAndAllocateTiles();
+                SpawnAndAllocateTilesForNow();
                 yield return StartCoroutine(RainDownRoutine());
-                
+
                 if (_canSpawnGuns)
                 {
                     _canSpawnGuns = false;
-                    
+
                     if (_gunTiles.All(e => e.DidSpawnGun == false))
                     {
                         foreach (Tile gunTile in _gunTiles)
                         {
                             yield return StartCoroutine(SpawnGunAndDestroyThoseLines(gunTile));
-                            
-                            SpawnAndAllocateTiles();
+                            SpawnAndAllocateTilesForNow();
                             yield return StartCoroutine(RainDownRoutine());
                         }
                     }
                 }
             }
-            
+
             GridEvents.PlayerMoved?.Invoke();
             IsGameOver(out _hintTile, out _hintDir);
             GridEvents.InputStart?.Invoke();
         }
-        
+
         private IEnumerator SpawnGunAndDestroyThoseLines(Tile gunTile)
         {
             //ONLY ONE COURUTINE
             ResetScoreMulti();
-            
+
             var bulletOffSet = _gridSizeY - 3;
             Vector3 pos = default;
             Vector3 bulletLocPos = default;
@@ -642,9 +822,8 @@ namespace Components
                     : pos.x - (bulletOffSet + 1);
                 bulletLocPos =
                     new Vector3(bulletLocOffSet, pos.y, pos.z);
-                
             }
-            
+
             yield return GunInstantiate(gunTile, pos, bulletLocPos, gunTile.ID);
         }
 
@@ -667,7 +846,7 @@ namespace Components
             //x = +-0.606 for summon and +-0.426 to put
             pos.x -= 1.606f;
             pos.y -= 0.22f;
-            
+
 
             var tLoc = new Vector3(pos.x + 0.18f, pos.y, pos.z);
             var gun = gunNew.GetComponent<Gun>();
@@ -679,27 +858,28 @@ namespace Components
                 gun.GetSprite().flipX = true;
                 pos.x += 3.212f;
                 tLoc.x = pos.x - 0.18f;
-                
-
             }
-            
+
             gunNew.transform.position = pos;
 
             Sequence fireSeq = DOTween.Sequence();
             fireSeq.Append(gun.MoveAndSpawn(tLoc));
             fireSeq.Append(gun.Whirl());
 
-            Tween shakeTween = gun.ShakeGun(id == EnvVar.TileLeftArrow ? -2.491f : 2.491f, -1.455f, id == EnvVar.TileLeftArrow);
+            Tween shakeTween = gun.ShakeGun(id == EnvVar.TileLeftArrow ? -2.491f : 2.491f, -1.455f,
+                id == EnvVar.TileLeftArrow);
             shakeTween.onComplete += delegate { bulletNew.SetActive(true); };
 
             fireSeq.Append(shakeTween);
             fireSeq.Append(SendTheBullet(bulletLocPos, bullet));
             fireSeq.Append(bullet.DestroyBullet());
-            fireSeq.Append(gun.DestroyGun(new Vector3(id == EnvVar.TileLeftArrow ? pos.x + 0.18f : pos.x - 0.18f, pos.y, pos.z)));
+            fireSeq.Append(gun.DestroyGun(new Vector3(id == EnvVar.TileLeftArrow ? pos.x + 0.18f : pos.x - 0.18f, pos.y,
+                pos.z)));
 
             TweenContainer.AddSequence = fireSeq;
-            
-            return fireSeq.WaitForCompletion();;
+
+            return fireSeq.WaitForCompletion();
+            ;
         }
 
         //After 0.7 difference Rain that Column

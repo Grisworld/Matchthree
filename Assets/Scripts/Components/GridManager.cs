@@ -49,7 +49,7 @@ namespace Components
         private Vector3 _mouseDownPos;
         private Vector3 _mouseUpPos;
         private List<MonoPool> _tilePoolsByPrefabID;
-        private List<List<Tile>>[] _movementSequences;
+        private List<Tile>[] _movementSequences;
         
         private MonoPool _tilePool0;
         private MonoPool _tilePool1;
@@ -339,7 +339,7 @@ namespace Components
         private void SpawnAndAllocateTilesForNow()
         {
             _tilesToMove = new Tile[_gridSizeX, _gridSizeY];
-            _movementSequences = new List<List<Tile>>[_gridSizeX];
+            _movementSequences = new List<Tile>[_gridSizeX];
             bool allFilled;
 
             do
@@ -384,9 +384,14 @@ namespace Components
                                 _grid.CoordsToWorld(_transform, new Vector2Int(x, _gridSizeY)),
                                 thisCoord
                             );
+                            
                             _tilesToMove[thisCoord.x, thisCoord.y] = newTile;
                             
                             newTile.AddCoord(new Vector2Int(thisCoord.x,thisCoord.y));
+
+                            if (_movementSequences[x] == null) _movementSequences[x] = new List<Tile>();
+                            _movementSequences[x].Add(newTile);
+                            
                         }
                     }
                 }
@@ -477,11 +482,15 @@ namespace Components
                     _grid.CoordsToWorld(_transform, new Vector2Int(spawnTilePosX, _gridSizeY)),
                     coord
                 );
+                
                 _tilesToMove[coord.x, coord.y] = newTile;
                 
                 newTile.AddCoord(new Vector2Int(coord.x,coord.y));
                 newTile.AddCoord(new Vector2Int(carriedCoord.x, carriedCoord.y));
                 newTile.AddCoord(new Vector2Int(spawnTilePosX,carriedCoord.y + 1));
+                
+                if (_movementSequences[spawnTilePosX] == null) _movementSequences[spawnTilePosX] = new List<Tile>();
+                _movementSequences[spawnTilePosX].Add(newTile);
             }
         }
 
@@ -566,6 +575,8 @@ namespace Components
                         longestDistY = y;
                         longestTween = thisTween;
                     }
+                    
+                    
                 }
 
                 if (shouldWait) yield return new WaitForSeconds(0.1f);

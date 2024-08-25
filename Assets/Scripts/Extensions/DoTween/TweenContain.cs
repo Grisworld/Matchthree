@@ -1,6 +1,8 @@
-﻿using System.Collections.Generic;
+﻿using System.Collections;
+using System.Collections.Generic;
 using System.Linq;
 using DG.Tweening;
+using UnityEngine;
 
 namespace Extensions.DoTween
 {
@@ -84,6 +86,14 @@ namespace Extensions.DoTween
 
             _activeTweens = new List<Tween>();
         }
+
+        public IEnumerator WaitForAllTweensEnded()
+        {
+            for (int i = 0; i < _activeTweens.Count; i++)
+               yield return _activeTweens[i].WaitForCompletion();
+
+            yield return null;
+        }
     }
 
     public interface ITweenContainerBind
@@ -98,5 +108,7 @@ namespace Extensions.DoTween
         Sequence AddSequence { set; }
         Sequence AddedSeq { get; }
         void Clear();
+
+        IEnumerator WaitForAllTweensEnded();
     }
 }

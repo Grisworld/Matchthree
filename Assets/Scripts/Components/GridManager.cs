@@ -49,7 +49,8 @@ namespace Components
         private Vector3 _mouseDownPos;
         private Vector3 _mouseUpPos;
         private List<MonoPool> _tilePoolsByPrefabID;
-        private List<Tile>[] _movementSequences;
+        
+        [SerializeField] private List<Tile>[] _movementSequences;
         
         private MonoPool _tilePool0;
         private MonoPool _tilePool1;
@@ -368,9 +369,10 @@ namespace Components
                 }
 
                 // Spawn new tiles for any remaining empty spaces
-                for (int x = 0; x < _gridSizeX; x++)
+                for (int y = 0; y < _gridSizeY; y++)
                 {
-                    for (int y = _gridSizeY - 1; y >= 0; y--)
+                    //for(int y = _gridSizeY - 1; y >= 0; y--)
+                    for (int x = 0; x < _gridSizeX; x++)
                     {
                         Vector2Int thisCoord = new(x, y);
 
@@ -414,6 +416,11 @@ namespace Components
                         _grid.Set(null, aboveTile.Coords);
                         _grid.Set(aboveTile, coord);
                         _tilesToMove[coord.x, coord.y] = aboveTile;
+                        
+                        aboveTile.AddCoord(new Vector2Int(coord.x,coord.y));
+                        if (_movementSequences[coord.x] == null) _movementSequences[coord.x] = new List<Tile>();
+                        _movementSequences[coord.x].Add(aboveTile);
+                        
                         return true;
                     }
                 }
@@ -461,13 +468,14 @@ namespace Components
                         _grid.Set(diagonalTile, coord);
                         _tilesToMove[coord.x, coord.y] = diagonalTile;
                         
-                        diagonalTile.AddCoord(new Vector2Int(coord.x,coord.y));
                         
                         if (difference > 1)
                         {
                             diagonalTile.AddCoord(new Vector2Int(carriedCoord.x,carriedCoord.y));
                         }
                         
+                        diagonalTile.AddCoord(new Vector2Int(coord.x,coord.y));
+
                         return;
                     }
                 }
@@ -485,9 +493,10 @@ namespace Components
                 
                 _tilesToMove[coord.x, coord.y] = newTile;
                 
-                newTile.AddCoord(new Vector2Int(coord.x,coord.y));
-                newTile.AddCoord(new Vector2Int(carriedCoord.x, carriedCoord.y));
                 newTile.AddCoord(new Vector2Int(spawnTilePosX,carriedCoord.y + 1));
+                newTile.AddCoord(new Vector2Int(carriedCoord.x, carriedCoord.y));
+                newTile.AddCoord(new Vector2Int(coord.x,coord.y));
+
                 
                 if (_movementSequences[spawnTilePosX] == null) _movementSequences[spawnTilePosX] = new List<Tile>();
                 _movementSequences[spawnTilePosX].Add(newTile);
@@ -547,7 +556,76 @@ namespace Components
             return SpawnTile(_tilePoolsByPrefabID[id], worldPos, coords);
         }
 
-       
+        private IEnumerator RainDownRoutineForNow()
+        {
+
+            var longestSeqLength = 0;
+            Sequence longestSeq = null;
+            
+            for (int i = 0; i < _movementSequences.Length; i++)
+            {
+                if(_movementSequences[i] == null) continue;
+
+                List<Tile> loopSeqTile = _movementSequences[i];
+
+                Sequence lastSeq = null;
+                
+                for (int y = 0; y < loopSeqTile.Count; y++)
+                {
+                    Tile thisTile = loopSeqTile[y];
+                    
+                    List<Vector2Int> movePoses = thisTile.TweenCoords;
+
+                    if (lastSeq != null) yield return lastSeq.WaitForStart();
+                    
+                    Sequence moveSeq = DOTween.Sequence();
+
+                    float timeCount = 0f;
+                    
+                    for (int z = 0; z < movePoses.Count; z++)
+                    {
+                        Tween move = thisTile.DoMove(_grid.CoordsToWorld(_transform, movePoses[z]));
+
+                        moveSeq.Insert(timeCount, move);
+                        timeCount += move.Duration();
+                        
+                        Debug.Log("timeCOunt "+ timeCount);
+
+                    }
+                    
+                    TweenContainer.AddSequence = moveSeq;
+                    
+                    lastSeq = moveSeq;
+                    
+                    moveSeq.onComplete += delegate
+                    {
+                        thisTile.SetCoordsFree();
+                    };
+                    
+                    yield return new WaitForSeconds(0.05f);
+                }
+                
+                if (longestSeqLength <= loopSeqTile.Count)
+                {
+                    longestSeqLength = loopSeqTile.Count;
+                    longestSeq = lastSeq;
+                }
+            }
+            
+            if (longestSeq != null)
+            {
+                yield return longestSeq.WaitForCompletion();
+            }
+            else
+            {
+                Debug.LogWarning("This should not have happened!");
+            }
+
+            if (_gunTiles.All(e => e.DidSpawnGun)) ResetGunTiles();
+            
+            
+        }
+        
         private IEnumerator RainDownRoutine()
         {
             var longestDistY = 0;
@@ -736,6 +814,8 @@ namespace Components
 
             if (_selectedTile)
             {
+                if (_selectedTile.ToBeDestroyed) return;
+                
                 if (GridF.ControlImmovableIds(_selectedTile)) return;
                 Vector2Int tileMoveCoord = _selectedTile.Coords + GridF.GetGridDirVector(dirVector);
                 if (!CanMove(tileMoveCoord)) return;
@@ -784,7 +864,7 @@ namespace Components
             {
                 yield return StartCoroutine(DestroyRoutine(_lastMatches));
                 SpawnAndAllocateTilesForNow();
-                yield return StartCoroutine(RainDownRoutine());
+                yield return StartCoroutine(RainDownRoutineForNow());
 
                 if (_canSpawnGuns)
                 {
@@ -796,7 +876,7 @@ namespace Components
                         {
                             yield return StartCoroutine(SpawnGunAndDestroyThoseLines(gunTile));
                             SpawnAndAllocateTilesForNow();
-                            yield return StartCoroutine(RainDownRoutine());
+                            yield return StartCoroutine(RainDownRoutineForNow());
                         }
                     }
                 }
@@ -907,6 +987,7 @@ namespace Components
                     {
                         GridEvents.MatchGroupDespawn?.Invoke(1, _scoreMulti);
                         SoundEvents.Play?.Invoke(8, 1.0f, false, 128);
+                        shottedTile.ToBeDestroyed = true;
                         DespawnTile(shottedTile);
                     }
                 //LAST PART

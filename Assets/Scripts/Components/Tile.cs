@@ -73,9 +73,9 @@ namespace Components
 
         public void Construct(Vector2Int coords) {_coords = coords;}
 
-        public Tween DoMove(Vector3 worldPos, TweenCallback onComplete = null)
+        public Tween DoMove(Vector3 worldPos, float dur = 1f, TweenCallback onComplete = null)
         {
-            TweenContainer.AddTween = _transform.DOMove(worldPos, 1f);
+            TweenContainer.AddTween = _transform.DOMove(worldPos,dur);
             TweenContainer.AddedTween.onComplete += onComplete;
 
             return TweenContainer.AddedTween;

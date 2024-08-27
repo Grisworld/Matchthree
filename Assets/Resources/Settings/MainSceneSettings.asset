@@ -22,7 +22,11 @@ MonoBehaviour:
       _levelMoveCount: 20
     - _levelPrefab: {fileID: 5931334834543154992, guid: ff14323f395ca0c4da0a6f7448b2f0c3, type: 3}
       _levelMoveCount: 40
+    - _levelPrefab: {fileID: 1045125162186233034, guid: 75ad7324413f7dc4cb50e8cad9f9c3ea, type: 3}
+      _levelMoveCount: 15
     _levelsB:
+    - _levelPrefab: {fileID: 1045125162186233034, guid: 75ad7324413f7dc4cb50e8cad9f9c3ea, type: 3}
+      _levelMoveCount: 40
     - _levelPrefab: {fileID: 5875713787186562717, guid: 699815889933fa249a02b5c578a8c88f, type: 3}
       _levelMoveCount: 30
     - _levelPrefab: {fileID: 180585538711423519, guid: 548a349b69eddd84c94ecc8160d52404, type: 3}

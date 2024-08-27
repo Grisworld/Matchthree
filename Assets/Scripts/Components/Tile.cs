@@ -12,8 +12,8 @@ namespace Components
         public Vector2Int Coords => _coords;
         public int ID => _id;
 
-        public List<Vector2Int> TweenCoords => _tweenCoords;
-        private List<Vector2Int> _tweenCoords;
+        public List<Vector3> TweenCoords => _tweenCoords;
+        private List<Vector3> _tweenCoords;
         
         [SerializeField] private Vector2Int _coords;
         [SerializeField] private int _id;
@@ -31,7 +31,7 @@ namespace Components
         private void Awake()
         {
             TweenContainer = TweenContain.Install(this);
-            _tweenCoords = new List<Vector2Int>();
+            _tweenCoords = new List<Vector3>();
 
         }
 
@@ -51,7 +51,10 @@ namespace Components
             _coords = new Vector2Int(x, y);
         }
 
-        public void AfterCreate() {}
+        public void AfterCreate()
+        {
+            _tweenCoords = new List<Vector3>();
+        }
 
         public void BeforeDeSpawn()
         {
@@ -99,14 +102,22 @@ namespace Components
             return TweenContainer.AddedSeq;
         }
 
-        public void AddCoord(Vector2Int coord)
+        public void AddCoord(Vector3 coord)
         {
             _tweenCoords.Add(coord);
         }
 
         public void SetCoordsFree()
         {
-            _tweenCoords = new List<Vector2Int>();
+            _tweenCoords = new List<Vector3>();
+        }
+
+        public Tween DoMoveAllPath(List<Vector3> movePoses, float movePosesCount, TweenCallback onComplete = null)
+        {
+            TweenContainer.AddTween = _transform.DOPath(movePoses.ToArray(), movePosesCount,PathType.Linear, PathMode.TopDown2D, 25, Color.red);
+            TweenContainer.AddedTween.onComplete += onComplete;
+
+            return TweenContainer.AddedTween;
         }
     }
 

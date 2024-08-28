@@ -352,12 +352,10 @@ namespace Components
                     Tile thisTile = _grid.Get(thisCoord);
 
                     if (thisTile) continue;
-
-                    bool lookForDiag = false;
                     
-                    if (TryFillFromAbove(thisCoord, true, out lookForDiag)) continue;
+                    if (TryFillFromAbove(thisCoord, true)) continue;
 
-                    if(lookForDiag) TryFillFromDiagonal(thisCoord);
+                    TryFillFromDiagonal(thisCoord);
                     continue;
 
                     // If we reach here, we couldn't fill the tile from above or diagonally
@@ -374,7 +372,7 @@ namespace Components
                 {
                     Vector2Int thisCoord = new(x, y);
 
-                    if (TryFillFromAbove(thisCoord, false, out bool lookforDiag)) continue;
+                    if (TryFillFromAbove(thisCoord, false)) continue;
 
                     if (_grid.Get(thisCoord) == null)
                     {
@@ -395,6 +393,12 @@ namespace Components
                         _tilesToMove[thisCoord.x, thisCoord.y] = newTile;
 
                         newTile.AddCoord(new Vector3(thisCoord.x, thisCoord.y));
+                        
+                        if (newTile.TweenCoords.Count == 2)
+                        {
+                            Debug.Log("that tile's which's spawn at falling coords are  "+ newTile.TweenCoords[0]
+                                +"  " + newTile.Coords[1] + " and ID is "+ newTile.ID);
+                        }
                     }
                 }
             }
@@ -404,7 +408,7 @@ namespace Components
         }
 
 
-        private bool TryFillFromAbove(Vector2Int coord, bool fill, out bool lookforDiag)
+        private bool TryFillFromAbove(Vector2Int coord, bool fill)
         {
             for (int y1 = coord.y + 1; y1 < _gridSizeY; y1++)
             {
@@ -415,7 +419,6 @@ namespace Components
                 {
                     if (aboveTile.ID == EnvVar.TileRightArrow || aboveTile.ID == EnvVar.TileLeftArrow)
                     {
-                        lookforDiag = true;
                         return false;
                     }
                     if (fill)
@@ -429,13 +432,12 @@ namespace Components
                         if (_movementSequences[coord.x] == null) _movementSequences[coord.x] = new List<Tile>();
                         _movementSequences[coord.x].Add(aboveTile);
 
-                        lookforDiag = false;
                         return true;
                     }
                 }
             }
-            
-            lookforDiag = false;
+
+            if (fill) return true;
             return false;
         }
 
@@ -516,6 +518,11 @@ namespace Components
                 newTile.AddCoord(new Vector3(coord.x, coord.y));
 
                 _movementSequences[spawnTilePosX].Add(newTile);
+                
+                if (newTile.TweenCoords.Count == 2)
+                {
+                    Debug.Log("that tile's (at diagnotic) coords are  "+ newTile.TweenCoords + " and ID is "+ newTile.ID);
+                }
             }
         }
 
@@ -601,7 +608,7 @@ namespace Components
 
                     float timeCount = 0f;
 
-
+                    
                     //float time = Mathf.Lerp(thisTile.transform.position.y, movePosition.y, movePosition.y / thisTile.transform.position.y);
 
                     Tween move = thisTile.DoMoveAllPath(movePoses, 1f);
@@ -629,7 +636,6 @@ namespace Components
                     move.onComplete += delegate
                     {
                         thisTile.SetCoordsFree();
-                        Debug.Log("EnteredForEmptyCords?");
                     };
 
                     shouldWait = true;

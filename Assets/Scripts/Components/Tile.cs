@@ -53,7 +53,6 @@ namespace Components
 
         public void AfterCreate()
         {
-            _tweenCoords = new List<Vector3>();
         }
 
         public void BeforeDeSpawn()
@@ -65,6 +64,8 @@ namespace Components
         public void AfterSpawn()
         {
             ToBeDestroyed = false;
+            _tweenCoords = new List<Vector3>();
+
             //RESET METHOD (Resurrect)
             
         }
@@ -114,7 +115,7 @@ namespace Components
 
         public Tween DoMoveAllPath(List<Vector3> movePoses, float movePosesCount, TweenCallback onComplete = null)
         {
-            TweenContainer.AddTween = _transform.DOPath(movePoses.ToArray(), movePosesCount,PathType.Linear, PathMode.TopDown2D, 25, Color.red);
+            TweenContainer.AddTween = _transform.DOPath(movePoses.ToArray(), movePosesCount,PathType.Linear, PathMode.Sidescroller2D, 25, Color.red);
             TweenContainer.AddedTween.onComplete += onComplete;
 
             return TweenContainer.AddedTween;

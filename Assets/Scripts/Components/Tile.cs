@@ -113,9 +113,24 @@ namespace Components
             _tweenCoords = new List<Vector3>();
         }
 
-        public Tween DoMoveAllPath(List<Vector3> movePoses, float movePosesCount, TweenCallback onComplete = null)
+        public Tween DoMoveAllPath(List<Vector3> movePoses, float moveSpeed, TweenCallback onComplete = null)
         {
-            TweenContainer.AddTween = _transform.DOPath(movePoses.ToArray(), movePosesCount,PathType.Linear, PathMode.Sidescroller2D, 25, Color.red);
+            Vector3 prevPos = _transform.position;
+            float totalDist = 0f;
+            
+            for (int i = 0; i < movePoses.Count; i++)
+            {
+                Vector3 currPos = movePoses[i];
+                totalDist += Vector3.Distance(prevPos, currPos);
+                prevPos = currPos;
+            }
+            
+            TweenContainer.AddTween = _transform.DOPath(movePoses.ToArray(), totalDist / moveSpeed,PathType.Linear, PathMode.TopDown2D, 25, Color.red);
+            
+            float tweenDuration = TweenContainer.AddedTween.Duration();
+            
+//            Debug.Log(tweenDuration);
+            
             TweenContainer.AddedTween.onComplete += onComplete;
 
             return TweenContainer.AddedTween;

@@ -338,12 +338,11 @@ namespace Components
             }
         }
 
-        private void SpawnAndAllocateTilesForNow()
+        private void SpawnLastlyy()
         {
             _tilesToMove = new Tile[_gridSizeX, _gridSizeY];
             _movementSequences = new List<Tile>[_gridSizeX];
             _offSetSequences = new int[_gridSizeX];
-            
             for (int x = 0; x < _gridSizeX; x++)
             {
                 for (int y = 0; y < _gridSizeY; y++)
@@ -352,7 +351,65 @@ namespace Components
                     Tile thisTile = _grid.Get(thisCoord);
 
                     if (thisTile) continue;
-                    
+
+                    FillFromAbove(thisCoord);
+                }
+            }
+        }
+
+        private void FillFromAbove(Vector2Int coord)
+        {
+            for (int y1 = coord.y + 1; y1 < _gridSizeY; y1++)
+            {
+                Vector2Int aboveCoords = new(coord.x, y1);
+                Tile aboveTile = _grid.Get(aboveCoords);
+
+                if (aboveTile != null)
+                {
+                    if (aboveTile.ID != EnvVar.TileRightArrow && aboveTile.ID != EnvVar.TileLeftArrow)
+                    {
+                        _grid.Set(null, aboveTile.Coords);
+                        _grid.Set(aboveTile, coord);
+                        _tilesToMove[coord.x, coord.y] = aboveTile;
+
+                        aboveTile.AddCoord(new Vector3(coord.x, coord.y));
+
+                        if (_movementSequences[coord.x] == null) _movementSequences[coord.x] = new List<Tile>();
+                        _movementSequences[coord.x].Add(aboveTile);
+                    }
+                }
+            }
+        }
+
+        private void SpawnAndAllocateTilesForNow()
+        {
+            _tilesToMove = new Tile[_gridSizeX, _gridSizeY];
+            _movementSequences = new List<Tile>[_gridSizeX];
+            _offSetSequences = new int[_gridSizeX];
+
+
+            int[] indexOrder = new int[_gridSizeX];
+
+            for (int i = 0; i < indexOrder.Length; i++)
+            {
+                if (i == 0)
+                    indexOrder[i] = 1;
+                else if (i == 1)
+                    indexOrder[i] = 0;
+                else
+                    indexOrder[i] = i;
+                //_movementSequences[i] = new List<Tile>();
+            }
+
+            for (int x = 0; x < _gridSizeX; x++)
+            {
+                for (int y = 0; y < _gridSizeY; y++)
+                {
+                    Vector2Int thisCoord = new(x, y);
+                    Tile thisTile = _grid.Get(thisCoord);
+
+                    if (thisTile) continue;
+
                     if (TryFillFromAbove(thisCoord, true)) continue;
 
                     TryFillFromDiagonal(thisCoord);
@@ -393,18 +450,85 @@ namespace Components
                         _tilesToMove[thisCoord.x, thisCoord.y] = newTile;
 
                         newTile.AddCoord(new Vector3(thisCoord.x, thisCoord.y));
-                        
+
                         if (newTile.TweenCoords.Count == 2)
                         {
-                            Debug.Log("that tile's which's spawn at falling coords are  "+ newTile.TweenCoords[0]
-                                +"  " + newTile.Coords[1] + " and ID is "+ newTile.ID);
+                            Debug.Log("that tile's which's spawn at falling coords are  " + newTile.TweenCoords[0]
+                                + "  " + newTile.Coords[1] + " and ID is " + newTile.ID);
                         }
                     }
                 }
             }
 
+            /*for (int i = 0; i < _movementSequences.Length; i++)
+            {
+                if (_movementSequences[i] == null) continue;
 
-            //_movementSequences = _movementSequences.Where(e => e != null).OrderByDescending(a => a.Max(tile => tile.TweenCoords.Min(pos => pos.x))).ToArray();
+                List<Tile> tileList = _movementSequences[i];
+                
+                List<Tile> newQueuedList = new List<Tile>();
+
+                _offSetSequences[i] = 0;
+                
+                for (int j = 0; j < tileList.Count; j++)
+                {
+                    Tile mainTile = tileList[j];
+                    int countOfCoords = mainTile.TweenCoords.Count;
+
+                    
+                    if (countOfCoords == 1)
+                    {
+                        for (int z = j; z < tileList.Count; z++)
+                        {
+                            Tile orderedTile = tileList[z];
+                            newQueuedList.Add(orderedTile);
+
+                            if (!_grid.IsInsideGrid(new Vector2Int((int)Math.Round(orderedTile.transform.position.x), (int)Math.Round(orderedTile.transform.position.y))))
+                            {
+                                orderedTile.Teleport(new Vector3(orderedTile.transform.position.x,_gridSizeY + _offSetSequences[i]));
+                                _offSetSequences[i]++;
+                                Debug.Log("Entered asd");
+                            }
+                        }
+
+                        for (int z = 0; z < j ; z++)
+                        {
+                            Tile orderedTile = tileList[z];
+                            newQueuedList.Add(orderedTile);
+
+                            if (!_grid.IsInsideGrid(new Vector2Int((int)Math.Round(orderedTile.transform.position.x), (int)Math.Round(orderedTile.transform.position.y))))
+                            {
+                                orderedTile.Teleport(new Vector3(orderedTile.transform.position.x,_gridSizeY + _offSetSequences[i]));
+                                _offSetSequences[i]++;
+                                Debug.Log("Entered x");
+                            }
+                        }
+                        break;
+
+                    }
+                }
+
+                List<Tile> lastModifiedList = new List<Tile>();
+                
+                for (int j = 0; j < newQueuedList.Count - 1; j++)
+                {
+                    Tile mainTile = newQueuedList[j];
+                    int countOfCoords = mainTile.TweenCoords.Count;
+
+                    Vector2Int gunTileCoordRight = new Vector2Int(mainTile.Coords.x - 1, mainTile.Coords.y);
+                    
+                    if (_grid.IsInsideGrid(gunTileCoordRight) && _grid.Get(gunTileCoordRight).ID == EnvVar.TileRightArrow)
+                    {
+                        
+                    }
+                    
+                    lastModifiedList.Add(mainTile);
+                    
+                }
+
+                _movementSequences[i] = new List<Tile>(newQueuedList);
+            }*/
+
         }
 
 
@@ -421,6 +545,7 @@ namespace Components
                     {
                         return false;
                     }
+
                     if (fill)
                     {
                         _grid.Set(null, aboveTile.Coords);
@@ -428,7 +553,7 @@ namespace Components
                         _tilesToMove[coord.x, coord.y] = aboveTile;
 
                         aboveTile.AddCoord(new Vector3(coord.x, coord.y));
-                        
+
                         if (_movementSequences[coord.x] == null) _movementSequences[coord.x] = new List<Tile>();
                         _movementSequences[coord.x].Add(aboveTile);
 
@@ -437,7 +562,6 @@ namespace Components
                 }
             }
 
-            if (fill) return true;
             return false;
         }
 
@@ -459,7 +583,7 @@ namespace Components
                 {
                     if (tempTile.ID == EnvVar.TileRightArrow)
                         spawnTilePosX = coord.x + 1;
-                    else 
+                    else
                         spawnTilePosX = coord.x - 1;
 
                     difference = y1 - coord.y;
@@ -492,6 +616,7 @@ namespace Components
                             _movementSequences[spawnTilePosX] = new List<Tile>();
                         _movementSequences[spawnTilePosX].Add(diagonalTile);
 
+
                         return;
                     }
                 }
@@ -518,10 +643,11 @@ namespace Components
                 newTile.AddCoord(new Vector3(coord.x, coord.y));
 
                 _movementSequences[spawnTilePosX].Add(newTile);
-                
+
                 if (newTile.TweenCoords.Count == 2)
                 {
-                    Debug.Log("that tile's (at diagnotic) coords are  "+ newTile.TweenCoords + " and ID is "+ newTile.ID);
+                    Debug.Log("that tile's (at diagnotic) coords are  " + newTile.TweenCoords + " and ID is " +
+                              newTile.ID);
                 }
             }
         }
@@ -608,10 +734,10 @@ namespace Components
 
                     float timeCount = 0f;
 
-                    
+
                     //float time = Mathf.Lerp(thisTile.transform.position.y, movePosition.y, movePosition.y / thisTile.transform.position.y);
 
-                    Tween move = thisTile.DoMoveAllPath(movePoses, 1f);
+                    Tween move = thisTile.DoMoveAllPath(movePoses, 10f);
 
                     if (waitForPrevTween)
                         move.onUpdate += delegate
@@ -633,10 +759,7 @@ namespace Components
 
                     //lastSeq = moveSeq;
 
-                    move.onComplete += delegate
-                    {
-                        thisTile.SetCoordsFree();
-                    };
+                    move.onComplete += delegate { thisTile.SetCoordsFree(); };
 
                     shouldWait = true;
                 }

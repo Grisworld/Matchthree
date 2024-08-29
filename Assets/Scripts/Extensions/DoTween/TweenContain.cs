@@ -3,11 +3,13 @@ using System.Collections.Generic;
 using System.Linq;
 using DG.Tweening;
 using UnityEngine;
+using UnityEngine.Events;
 
 namespace Extensions.DoTween
 {
     public class TweenContain : ITweenContainer
     {
+        public event UnityAction OnAllTweensCompleted;
         public Tween AddTween
         {
             set
@@ -65,6 +67,11 @@ namespace Extensions.DoTween
             activeTweens.Remove(tween);
 
             _activeTweens = activeTweens.Where(at => at != null).ToList();
+            
+            if (_activeTweens.Count == 0)
+            {
+                OnAllTweensCompleted?.Invoke();
+            }
         }
 
         private void OnComplete(Tween tween)
@@ -75,6 +82,11 @@ namespace Extensions.DoTween
             activeTweens.Remove(tween);
 
             _activeTweens = activeTweens.Where(at => at != null).ToList();
+
+            if (_activeTweens.Count == 0)
+            {
+                OnAllTweensCompleted?.Invoke();
+            }
         }
 
         public void Clear()
@@ -87,18 +99,27 @@ namespace Extensions.DoTween
             _activeTweens = new List<Tween>();
         }
 
-        public IEnumerator WaitForAllTweensEnded()
+        private IEnumerator WaitForAllTweensEndedRoutine()
         {
-            for (int i = 0; i < _activeTweens.Count; i++)
-               yield return _activeTweens[i].WaitForCompletion();
+            while (_activeTweens.Count > 0)
+            {
+                yield return null;
+            }
+            
+        }
 
-            yield return null;
+        public YieldInstruction WaitForAllTweensEnded()
+        {
+            return _myBind.StartCoroutine(WaitForAllTweensEndedRoutine());
+            
         }
     }
 
     public interface ITweenContainerBind
     {
         ITweenContainer TweenContainer { get; set; }
+
+        Coroutine StartCoroutine(IEnumerator coroutine);
     }
 
     public interface ITweenContainer
@@ -109,6 +130,6 @@ namespace Extensions.DoTween
         Sequence AddedSeq { get; }
         void Clear();
 
-        IEnumerator WaitForAllTweensEnded();
+        YieldInstruction WaitForAllTweensEnded();
     }
 }
